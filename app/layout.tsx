@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/dashboard/Navbar";
+import CookieConsent from "@/components/CookieConsent";
 
 export const metadata: Metadata = {
   title: "Scramble Marketing Hub",
@@ -20,6 +21,7 @@ export default function RootLayout({
       <body className="text-text antialiased min-h-screen">
         <Navbar />
         <main>{children}</main>
+        <CookieConsent />
       </body>
     </html>
   );

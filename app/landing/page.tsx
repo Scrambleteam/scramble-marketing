@@ -229,6 +229,13 @@ export default function LandingPage() {
             </div>
             <span>Scramble</span>
           </div>
+          <div className="scramble-footer-links">
+            <Link href="/privacy-policy">Privacy Policy</Link>
+            <span className="dot">·</span>
+            <Link href="/cookie-policy">Cookie Policy</Link>
+            <span className="dot">·</span>
+            <Link href="/terms">Terms of Service</Link>
+          </div>
           <p>© 2026 Scramble Marketing Hub. All rights reserved.</p>
         </div>
       </footer>
@@ -611,6 +618,13 @@ const scrambleStyles = `
   }
   .scramble-footer-brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; color: #2d7fe0; }
   .scramble-footer p { font-size: 14px; color: #8a97ab; }
+  .scramble-footer-links { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .scramble-footer-links a {
+    color: #5a6b82; font-size: 14px; font-weight: 600; text-decoration: none;
+    transition: color 0.2s;
+  }
+  .scramble-footer-links a:hover { color: #2d7fe0; }
+  .scramble-footer-links .dot { color: #d0dae8; }
 
   /* ─── Responsive ─── */
   @media (max-width: 860px) {

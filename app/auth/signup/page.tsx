@@ -141,6 +141,12 @@ function SignupInner() {
             <button type="submit" className="sc-btn-primary" disabled={loading}>
               {loading ? "Creating account..." : "Create account →"}
             </button>
+
+            <p className="signup-legal">
+              By signing up, you agree to our{" "}
+              <Link href="/privacy-policy">Privacy Policy</Link> and{" "}
+              <Link href="/cookie-policy">Cookie Policy</Link>.
+            </p>
           </form>
 
           <p className="signup-foot">
@@ -194,6 +200,14 @@ const signupStyles = `
   .signup-sub { font-size: 16px; color: #5a6b82; margin-bottom: 32px; }
   .signup-form { display: flex; flex-direction: column; gap: 20px; }
   .signup-foot { text-align: center; margin-top: 24px; font-size: 15px; color: #5a6b82; }
+  .signup-legal {
+    text-align: center; font-size: 13px; color: #8a97ab; line-height: 1.5;
+  }
+  .signup-legal a {
+    color: #2d7fe0; text-decoration: underline; text-underline-offset: 2px;
+    font-weight: 600; transition: color 0.2s;
+  }
+  .signup-legal a:hover { color: #4a9eff; }
 
   .signup-summary {
     background: linear-gradient(135deg, rgba(74,158,255,0.06), rgba(244,185,66,0.06));
