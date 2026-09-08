@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { supabase } from "@/lib/supabase";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { FileText, ChevronDown, ChevronUp, Calendar, CheckCircle, Clock } from "lucide-react";
+import DOMPurify from "isomorphic-dompurify";
 
 interface WeeklyReport {
   id: string;
@@ -156,7 +157,7 @@ function ReportCard({ report }: { report: WeeklyReport }) {
             .report-footer { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.06); }
             .report-footer p { font-size: 0.75rem; color: #7a7a70; }
           `}</style>
-          <div dangerouslySetInnerHTML={{ __html: report.report_html }} />
+          <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(report.report_html, { ALLOWED_TAGS: ['div','span','p','h1','h2','h3','h4','h5','h6','table','thead','tbody','tr','th','td','ul','ol','li','strong','em','br','a','img','section','header','footer'], ALLOWED_ATTR: ['class','style','href','src','alt','width','height','target','rel'] }) }} />
         </div>
       )}
     </div>

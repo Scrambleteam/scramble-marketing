@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabaseClient } from '@/lib/supabase'
+import { getAuthenticatedUser, unauthorizedResponse } from '@/lib/api-auth'
 
 /**
  * GET /api/auth/google/status?clientId=...
  * 
  * Check if a client has connected Google OAuth and what scopes are granted.
+ * Requires authentication — users can only check their own status.
  */
 export async function GET(request: NextRequest) {
   try {
+    // Auth gate
+    const user = await getAuthenticatedUser(request)
+    if (!user) return unauthorizedResponse()
+
     const { searchParams } = new URL(request.url)
     const clientId = searchParams.get('clientId')
 
@@ -15,6 +21,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: 'clientId is required' },
         { status: 400 }
+      )
+    }
+
+    // Users can only check their own OAuth status
+    if (clientId.toLowerCase() !== user.email?.toLowerCase()) {
+      return NextResponse.json(
+        { error: 'Forbidden: can only check your own status' },
+        { status: 403 }
       )
     }
 

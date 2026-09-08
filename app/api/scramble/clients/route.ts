@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase";
+import { getAuthenticatedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/api-auth";
+import { isAdminEmail } from "@/lib/admin";
 
 /**
  * GET /api/scramble/clients
  * Admin route — lists all onboarded Scramble clients (for Gabriel + Herbie).
  * Pulls from scramble_users, newest first.
+ * Requires admin authentication.
  */
 export async function GET(_request: NextRequest) {
+  // Auth gate: admin only
+  const user = await getAuthenticatedUser(_request);
+  if (!user) return unauthorizedResponse();
+  if (!isAdminEmail(user.email)) return forbiddenResponse("Admin access required");
   try {
     const supabase = createAdminSupabaseClient();
     const { data, error } = await supabase

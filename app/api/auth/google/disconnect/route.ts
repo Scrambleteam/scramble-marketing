@@ -1,22 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminSupabaseClient } from '@/lib/supabase'
+import { getAuthenticatedUser, unauthorizedResponse } from '@/lib/api-auth'
 
 /**
  * POST /api/auth/google/disconnect
  * 
  * Disconnect a client's Google OAuth connection and revoke tokens.
+ * Requires authentication — users can only disconnect their own connection.
  * 
  * Body:
  *   clientId: string
  */
 export async function POST(request: NextRequest) {
   try {
+    // Auth gate
+    const user = await getAuthenticatedUser(request)
+    if (!user) return unauthorizedResponse()
+
     const { clientId } = await request.json()
 
     if (!clientId) {
       return NextResponse.json(
         { error: 'clientId is required' },
         { status: 400 }
+      )
+    }
+
+    // Users can only disconnect their own Google connection
+    if (clientId.toLowerCase() !== user.email?.toLowerCase()) {
+      return NextResponse.json(
+        { error: 'Forbidden: can only disconnect your own account' },
+        { status: 403 }
       )
     }
 
