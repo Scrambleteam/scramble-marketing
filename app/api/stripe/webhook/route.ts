@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
         const subscription = await stripe.subscriptions.retrieve(session.subscription);
 
-        await supabase
+        const { error, data } = await supabase
           .from("scramble_users")
           .update({
             stripe_customer_id: session.customer,
@@ -65,7 +65,15 @@ export async function POST(request: NextRequest) {
             ...(tier ? { tier } : {}),
             updated_at: new Date().toISOString(),
           })
-          .eq("email", email);
+          .eq("email", email)
+          .select();
+
+        if (error) {
+          throw new Error(`Supabase update failed for checkout.session.completed (email=${email}): ${error.message}`);
+        }
+        if (!data || data.length === 0) {
+          throw new Error(`No scramble_users row matched email=${email} for checkout.session.completed`);
+        }
         break;
       }
 
@@ -76,7 +84,7 @@ export async function POST(request: NextRequest) {
 
         const status = event.type === "customer.subscription.deleted" ? "canceled" : subscription.status;
 
-        await supabase
+        const { error, data } = await supabase
           .from("scramble_users")
           .update({
             subscription_status: status,
@@ -84,7 +92,15 @@ export async function POST(request: NextRequest) {
             is_active: ACTIVE_SUBSCRIPTION_STATUSES.includes(status),
             updated_at: new Date().toISOString(),
           })
-          .eq("stripe_customer_id", customerId);
+          .eq("stripe_customer_id", customerId)
+          .select();
+
+        if (error) {
+          throw new Error(`Supabase update failed for ${event.type} (customer=${customerId}): ${error.message}`);
+        }
+        if (!data || data.length === 0) {
+          throw new Error(`No scramble_users row matched stripe_customer_id=${customerId} for ${event.type}`);
+        }
         break;
       }
 
