@@ -38,8 +38,8 @@ export const TIERS: Tier[] = [
     key: 'full',
     name: 'Full Package',
     tagline: 'Google SEO, Google Ads & Meta tracking combined',
-    price: 'Coming Soon',
-    priceNote: '',
+    price: '£750',
+    priceNote: 'per month',
     services: ['search_console', 'analytics', 'ads', 'meta_ads'],
     features: [
       'Everything in SEO',
@@ -55,8 +55,8 @@ export const TIERS: Tier[] = [
     key: 'ads',
     name: 'Google Ads',
     tagline: 'Campaign spend, conversions & ROAS',
-    price: 'Coming Soon',
-    priceNote: '',
+    price: '£450',
+    priceNote: 'per month',
     services: ['ads', 'meta_ads'],
     features: [
       'Google Ads dashboard',
