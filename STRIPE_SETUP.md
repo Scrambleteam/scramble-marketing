@@ -41,7 +41,7 @@ run through a signup with a test card before going live.
 
 [Dashboard → Developers → Webhooks → Add endpoint](https://dashboard.stripe.com/test/webhooks):
 
-- Endpoint URL: `https://scramblemarketing.co.uk/api/stripe/webhook`
+- Endpoint URL: `https://www.scramblemarketing.co.uk/api/stripe/webhook` (use the `www` domain — the bare apex domain 308-redirects to it, and Stripe won't follow redirects for webhook delivery)
 - Events to send: `checkout.session.completed`, `customer.subscription.updated`,
   `customer.subscription.deleted`
 
