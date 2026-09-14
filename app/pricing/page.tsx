@@ -89,7 +89,7 @@ export default function PricingPage() {
         </div>
 
         <p className="pricing-foot">
-          No card required to start. Cancel anytime.
+          7-day free trial on every plan. Cancel anytime.
         </p>
       </section>
     </div>

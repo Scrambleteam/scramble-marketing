@@ -1,0 +1,96 @@
+import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
+import { getStripe, ACTIVE_SUBSCRIPTION_STATUSES } from "@/lib/stripe";
+import { createAdminSupabaseClient } from "@/lib/supabase";
+
+export const runtime = "nodejs";
+
+/**
+ * POST /api/stripe/webhook
+ * Stripe sends subscription lifecycle events here. Verifies the signature,
+ * then syncs billing state onto the matching scramble_users row.
+ *
+ * Configure this URL (https://yourdomain/api/stripe/webhook) in the Stripe
+ * Dashboard → Developers → Webhooks, listening for:
+ *   checkout.session.completed
+ *   customer.subscription.updated
+ *   customer.subscription.deleted
+ */
+export async function POST(request: NextRequest) {
+  const sig = request.headers.get("stripe-signature");
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!sig || !webhookSecret) {
+    return NextResponse.json({ error: "Webhook not configured" }, { status: 400 });
+  }
+
+  const rawBody = await request.text();
+  const stripe = getStripe();
+
+  let event: Stripe.Event;
+  try {
+    event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
+  } catch (err) {
+    console.error("[stripe webhook] signature verification failed", err);
+    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  }
+
+  const supabase = createAdminSupabaseClient();
+
+  try {
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const email = session.metadata?.email || session.client_reference_id;
+        const tier = session.metadata?.tier;
+        if (!email || typeof session.subscription !== "string" || typeof session.customer !== "string") break;
+
+        const subscription = await stripe.subscriptions.retrieve(session.subscription);
+
+        await supabase
+          .from("scramble_users")
+          .update({
+            stripe_customer_id: session.customer,
+            stripe_subscription_id: subscription.id,
+            subscription_status: subscription.status,
+            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            is_active: ACTIVE_SUBSCRIPTION_STATUSES.includes(subscription.status as any),
+            ...(tier ? { tier } : {}),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("email", email);
+        break;
+      }
+
+      case "customer.subscription.updated":
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object as Stripe.Subscription;
+        const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
+
+        const status = event.type === "customer.subscription.deleted" ? "canceled" : subscription.status;
+
+        await supabase
+          .from("scramble_users")
+          .update({
+            subscription_status: status,
+            current_period_end: subscription.current_period_end
+              ? new Date(subscription.current_period_end * 1000).toISOString()
+              : null,
+            is_active: ACTIVE_SUBSCRIPTION_STATUSES.includes(status as any),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("stripe_customer_id", customerId);
+        break;
+      }
+
+      default:
+        // Ignore other event types.
+        break;
+    }
+  } catch (err) {
+    console.error(`[stripe webhook] failed handling ${event.type}`, err);
+    return NextResponse.json({ error: "Webhook handler error" }, { status: 500 });
+  }
+
+  return NextResponse.json({ received: true });
+}

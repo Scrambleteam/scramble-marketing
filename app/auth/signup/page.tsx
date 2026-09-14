@@ -58,8 +58,23 @@ function SignupInner() {
         return;
       }
 
-      // 3. Redirect to onboarding
-      router.push(`/onboarding?email=${encodeURIComponent(email)}`);
+      // 3. Kick off Stripe Checkout for the selected plan (7-day trial,
+      // card collected up front). Stripe redirects to /onboarding on success.
+      const checkoutRes = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, tier: tierKey }),
+      });
+
+      const checkoutData = await checkoutRes.json();
+
+      if (!checkoutRes.ok || !checkoutData.url) {
+        setError(checkoutData.error || "Failed to start checkout. Please try again.");
+        setLoading(false);
+        return;
+      }
+
+      window.location.href = checkoutData.url;
     } catch (err) {
       console.error(err);
       setError("Something went wrong. Please try again.");
@@ -96,7 +111,7 @@ function SignupInner() {
           </div>
 
           <h1 className="signup-title">Create your account</h1>
-          <p className="signup-sub">Start your free trial — no card required.</p>
+          <p className="signup-sub">Start your 7-day free trial. A card is required to activate it.</p>
 
           <form onSubmit={handleSignup} className="signup-form">
             <div>
@@ -139,7 +154,7 @@ function SignupInner() {
             {error && <div className="sc-error">{error}</div>}
 
             <button type="submit" className="sc-btn-primary" disabled={loading}>
-              {loading ? "Creating account..." : "Create account →"}
+              {loading ? "Redirecting to secure checkout..." : "Continue to payment →"}
             </button>
 
             <p className="signup-legal">

@@ -15,8 +15,10 @@ export default function DashboardSettings() {
   const [services, setServices] = useState<ServiceKey[]>([]);
   const [connected, setConnected] = useState(false);
   const [connectedEmail, setConnectedEmail] = useState("");
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [billingBusy, setBillingBusy] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -34,6 +36,7 @@ export default function DashboardSettings() {
         setCompany(p.company_name);
         setTier(p.tier);
         setServices(p.services || servicesForTier(p.tier));
+        setSubscriptionStatus(p.subscription_status || null);
       }
 
       const statusRes = await fetch(`/api/auth/google/status?clientId=${encodeURIComponent(userEmail)}`);
@@ -71,6 +74,28 @@ export default function DashboardSettings() {
     setBusy(false);
   };
 
+  const handleManageBilling = async () => {
+    setBillingBusy(true);
+    try {
+      const res = await fetch("/api/stripe/portal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || "Couldn't open billing portal. Please try again.");
+        setBillingBusy(false);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Couldn't open billing portal. Please try again.");
+      setBillingBusy(false);
+    }
+  };
+
   const displayServices = services.length ? services : servicesForTier(tier);
 
   return (
@@ -106,6 +131,23 @@ export default function DashboardSettings() {
               <div className="set-row"><span>Company</span><strong>{company}</strong></div>
               <div className="set-row"><span>Email</span><strong>{email}</strong></div>
               <div className="set-row"><span>Plan</span><strong style={{ textTransform: "capitalize" }}>{tier}</strong></div>
+            </div>
+
+            {/* Billing */}
+            <div className="sc-card set-card">
+              <h2 className="set-card-title">Billing</h2>
+              <div className="set-row">
+                <span>Status</span>
+                <strong style={{ textTransform: "capitalize" }}>
+                  {subscriptionStatus || "No active subscription"}
+                </strong>
+              </div>
+              <p style={{ color: "#5a6b82", margin: "14px 0 18px", fontSize: 15 }}>
+                Update your card, view invoices, or cancel your subscription.
+              </p>
+              <button onClick={handleManageBilling} disabled={billingBusy} className="sc-btn-primary" style={{ width: "100%" }}>
+                {billingBusy ? "Opening billing portal..." : "Manage billing →"}
+              </button>
             </div>
 
             {/* Google connection */}
