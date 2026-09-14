@@ -12,7 +12,7 @@ export function getStripe(): Stripe {
       throw new Error('Missing Stripe env var: STRIPE_SECRET_KEY')
     }
     _stripe = new Stripe(key, {
-      apiVersion: '2025-08-27.basil',
+      apiVersion: '2026-08-26.dahlia',
     })
   }
   return _stripe
@@ -35,4 +35,4 @@ export function priceIdForTier(tier: TierKey): string {
 }
 
 // Statuses that should count as "the client has active access".
-export const ACTIVE_SUBSCRIPTION_STATUSES = ['active', 'trialing'] as const
+export const ACTIVE_SUBSCRIPTION_STATUSES: readonly string[] = ['active', 'trialing']

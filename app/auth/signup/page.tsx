@@ -2,13 +2,12 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { SCRAMBLE_THEME } from "@/lib/scramble-theme";
 import { getTier, TIERS } from "@/lib/tiers";
 
 function SignupInner() {
-  const router = useRouter();
   const params = useSearchParams();
   const tierKey = (params.get("tier") || "full") as "seo" | "ads" | "full";
   const tier = getTier(tierKey) || TIERS[1];
@@ -74,7 +73,7 @@ function SignupInner() {
         return;
       }
 
-      window.location.href = checkoutData.url;
+      window.location.assign(checkoutData.url);
     } catch (err) {
       console.error(err);
       setError("Something went wrong. Please try again.");
@@ -171,7 +170,7 @@ function SignupInner() {
 
         {/* Tier summary card */}
         <div className="signup-summary">
-          <h3>You're signing up for</h3>
+          <h3>You&apos;re signing up for</h3>
           <div className="signup-summary-tier">{tier.name}</div>
           <p className="signup-summary-tagline">{tier.tagline}</p>
           <ul>

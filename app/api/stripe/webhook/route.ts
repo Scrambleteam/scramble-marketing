@@ -5,6 +5,13 @@ import { createAdminSupabaseClient } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 
+// Stripe moved current_period_end from the Subscription object onto each
+// SubscriptionItem (flexible billing mode) — read it off the first item.
+function subscriptionPeriodEnd(subscription: Stripe.Subscription): string | null {
+  const end = subscription.items.data[0]?.current_period_end;
+  return end ? new Date(end * 1000).toISOString() : null;
+}
+
 /**
  * POST /api/stripe/webhook
  * Stripe sends subscription lifecycle events here. Verifies the signature,
@@ -53,8 +60,8 @@ export async function POST(request: NextRequest) {
             stripe_customer_id: session.customer,
             stripe_subscription_id: subscription.id,
             subscription_status: subscription.status,
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-            is_active: ACTIVE_SUBSCRIPTION_STATUSES.includes(subscription.status as any),
+            current_period_end: subscriptionPeriodEnd(subscription),
+            is_active: ACTIVE_SUBSCRIPTION_STATUSES.includes(subscription.status),
             ...(tier ? { tier } : {}),
             updated_at: new Date().toISOString(),
           })
@@ -73,10 +80,8 @@ export async function POST(request: NextRequest) {
           .from("scramble_users")
           .update({
             subscription_status: status,
-            current_period_end: subscription.current_period_end
-              ? new Date(subscription.current_period_end * 1000).toISOString()
-              : null,
-            is_active: ACTIVE_SUBSCRIPTION_STATUSES.includes(status as any),
+            current_period_end: subscriptionPeriodEnd(subscription),
+            is_active: ACTIVE_SUBSCRIPTION_STATUSES.includes(status),
             updated_at: new Date().toISOString(),
           })
           .eq("stripe_customer_id", customerId);
