@@ -31,6 +31,7 @@ export const TIERS: Tier[] = [
       'Meta Ads tracking',
       'Weekly automated reports',
     ],
+    highlight: true,
     accent: 'blue',
   },
   {
@@ -48,7 +49,6 @@ export const TIERS: Tier[] = [
       'Priority automated reports',
       'Full marketing intelligence',
     ],
-    highlight: true,
     accent: 'gradient',
   },
   {
