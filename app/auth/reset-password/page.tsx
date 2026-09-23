@@ -1,8 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 export default function ResetPasswordPage() {
   const [password, setPassword] = useState('')
@@ -10,18 +15,16 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
-  const supabase = createClientComponentClient()
   const router = useRouter()
 
   useEffect(() => {
-    // Supabase puts the token in the URL hash — this handles it automatically
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
       if (event === 'PASSWORD_RECOVERY') {
-        // User is in password recovery mode — good
+        // User is in password recovery mode
       }
     })
     return () => subscription.unsubscribe()
-  }, [supabase])
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -53,7 +56,6 @@ export default function ResetPasswordPage() {
   return (
     <div className="min-h-screen bg-[#0F1622] flex items-center justify-center px-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-white">Scramble</h1>
           <p className="text-[#60738A] mt-2">Marketing Platform</p>
