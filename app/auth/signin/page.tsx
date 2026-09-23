@@ -88,6 +88,10 @@ export default function SigninPage() {
             <button type="submit" className="sc-btn-primary" disabled={loading}>
               {loading ? "Signing in..." : "Sign in →"}
             </button>
+
+            <p style={{ textAlign: 'center', marginTop: 4 }}>
+              <Link href="/auth/forgot-password" className="sc-link" style={{ fontSize: 14, color: '#5a6b82' }}>Forgot password?</Link>
+            </p>
           </form>
 
           <p className="signin-foot">
