@@ -10,6 +10,5 @@ export const authClient = createClient(url, anon, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    storageKey: "scramble-auth",
   },
 });

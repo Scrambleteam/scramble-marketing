@@ -15,9 +15,28 @@ export async function getAuthenticatedUser(request: NextRequest) {
     if (!token) {
       // Try to get token from cookies (Supabase auth stores session in cookies)
       const cookies = request.cookies;
-      const accessToken =
-        cookies.get("sb-access-token")?.value ||
-        cookies.get("scramble-auth-token")?.value;
+      // Supabase default cookie is sb-<project-ref>-auth-token
+      // Custom storageKey 'scramble-auth' uses sb-scramble-auth-auth-token
+      let sbToken: string | null = null
+      for (const cookieName of [
+        'sb-nozbcpzdkivpyfxcvrah-auth-token',
+        'sb-scramble-auth-auth-token',
+        'scramble-auth',
+        'sb-access-token'
+      ]) {
+        const raw = cookies.get(cookieName)?.value
+        if (raw) {
+          try {
+            const parsed = JSON.parse(decodeURIComponent(raw))
+            sbToken = parsed?.access_token || parsed
+            if (sbToken) break
+          } catch {
+            sbToken = raw
+            break
+          }
+        }
+      }
+      const accessToken = sbToken
       if (!accessToken) return null;
       return await verifyToken(accessToken);
     }

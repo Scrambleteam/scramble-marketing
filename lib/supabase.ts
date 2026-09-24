@@ -24,7 +24,7 @@ export const supabase = new Proxy({} as SupabaseClient, {
 
 // Server-side client for API routes (uses service role for admin operations)
 export const createAdminSupabaseClient = () => {
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY
   if (!supabaseUrl || !serviceRoleKey) {
     throw new Error(
       'Missing Supabase env vars: NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY'
