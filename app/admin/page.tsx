@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { authFetch } from "@/lib/api-client";
 import { isAdminEmail } from "@/lib/admin";
 import { SCRAMBLE_THEME } from "@/lib/scramble-theme";
 import { SERVICE_META, ServiceKey } from "@/lib/tiers";
@@ -50,7 +51,7 @@ export default function AdminDashboard() {
       setAdminEmail(email || "");
       setAuthorized(true);
 
-      const res = await fetch("/api/scramble/clients");
+      const res = await authFetch("/api/scramble/clients");
       if (res.ok) {
         const d = await res.json();
         setClients(d.clients || []);

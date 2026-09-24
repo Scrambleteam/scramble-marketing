@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { authFetch } from "@/lib/api-client";
 import { SCRAMBLE_THEME } from "@/lib/scramble-theme";
 import { SERVICE_META, servicesForTier, TierKey, ServiceKey } from "@/lib/tiers";
 
@@ -30,7 +31,7 @@ export default function DashboardSettings() {
       }
       setEmail(userEmail);
 
-      const res = await fetch(`/api/scramble/me?email=${encodeURIComponent(userEmail)}`);
+      const res = await authFetch(`/api/scramble/me?email=${encodeURIComponent(userEmail)}`);
       if (res.ok) {
         const p = await res.json();
         setCompany(p.company_name);
@@ -39,7 +40,7 @@ export default function DashboardSettings() {
         setSubscriptionStatus(p.subscription_status || null);
       }
 
-      const statusRes = await fetch(`/api/auth/google/status?clientId=${encodeURIComponent(userEmail)}`);
+      const statusRes = await authFetch(`/api/auth/google/status?clientId=${encodeURIComponent(userEmail)}`);
       if (statusRes.ok) {
         const status = await statusRes.json();
         setConnected(status.connected);
@@ -51,7 +52,7 @@ export default function DashboardSettings() {
 
   const handleConnect = async () => {
     setBusy(true);
-    const res = await fetch("/api/auth/google/initiate", {
+    const res = await authFetch("/api/auth/google/initiate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ clientId: email }),
@@ -64,7 +65,7 @@ export default function DashboardSettings() {
   const handleDisconnect = async () => {
     if (!confirm("Disconnect your Google account?")) return;
     setBusy(true);
-    await fetch("/api/auth/google/disconnect", {
+    await authFetch("/api/auth/google/disconnect", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ clientId: email }),
@@ -77,7 +78,7 @@ export default function DashboardSettings() {
   const handleManageBilling = async () => {
     setBillingBusy(true);
     try {
-      const res = await fetch("/api/stripe/portal", {
+      const res = await authFetch("/api/stripe/portal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

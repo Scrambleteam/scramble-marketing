@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { authFetch, authFetchOrThrow } from "@/lib/api-client";
 import { SCRAMBLE_THEME } from "@/lib/scramble-theme";
 import { SERVICE_META, servicesForTier, TierKey, ServiceKey } from "@/lib/tiers";
 
@@ -20,6 +21,8 @@ function OnboardingInner() {
   const [connecting, setConnecting] = useState(false);
   const [connectingMeta, setConnectingMeta] = useState(false);
   const [oauthError, setOauthError] = useState("");
+  const [finishError, setFinishError] = useState("");
+  const [finishing, setFinishing] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -39,7 +42,7 @@ function OnboardingInner() {
 
       if (userEmail) {
         // Fetch their profile
-        const res = await fetch(`/api/scramble/me?email=${encodeURIComponent(userEmail)}`);
+        const res = await authFetch(`/api/scramble/me?email=${encodeURIComponent(userEmail)}`);
         if (res.ok) {
           const profile = await res.json();
           setCompany(profile.company_name || "");
@@ -50,7 +53,7 @@ function OnboardingInner() {
         }
 
         // Check live OAuth status
-        const statusRes = await fetch(`/api/auth/google/status?clientId=${encodeURIComponent(userEmail)}`);
+        const statusRes = await authFetch(`/api/auth/google/status?clientId=${encodeURIComponent(userEmail)}`);
         if (statusRes.ok) {
           const status = await statusRes.json();
           if (status.connected) setGoogleConnected(true);
@@ -99,18 +102,31 @@ function OnboardingInner() {
   };
 
   const handleFinish = async () => {
-    // Mark onboarding complete and save site URL
-    await fetch("/api/scramble/me", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email,
-        onboarding_complete: true,
-        google_connected: true,
-        site_url: siteUrl || null,
-      }),
-    });
-    router.push("/dashboard");
+    // Mark onboarding complete and save site URL. This must succeed before
+    // we leave the page — silently failing here (e.g. the 401 this used to
+    // get from a bare fetch()) is exactly what made finished signups look
+    // like they never happened.
+    setFinishError("");
+    setFinishing(true);
+    try {
+      await authFetchOrThrow("/api/scramble/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          onboarding_complete: true,
+          google_connected: true,
+          site_url: siteUrl || null,
+        }),
+      });
+      router.push("/dashboard");
+    } catch (err) {
+      console.error("[finish onboarding]", err);
+      setFinishError(
+        "Couldn't save your progress — please check your connection and try again."
+      );
+      setFinishing(false);
+    }
   };
 
   const displayServices = services.length ? services : servicesForTier(tier);
@@ -275,17 +291,20 @@ function OnboardingInner() {
                 )}
               </div>
 
+              {finishError && <div className="sc-error" style={{ marginBottom: 16 }}>{finishError}</div>}
+
               {/* Done / Go to dashboard */}
               {googleConnected && metaConnected ? (
-                <button onClick={handleFinish} className="sc-btn-primary">
-                  Go to my dashboard →
+                <button onClick={handleFinish} className="sc-btn-primary" disabled={finishing}>
+                  {finishing ? "Saving..." : "Go to my dashboard →"}
                 </button>
               ) : (googleConnected || metaConnected) && !(googleConnected && metaConnected) ? (
                 <button
                   onClick={handleFinish}
+                  disabled={finishing}
                   style={{ display: "block", width: "100%", textAlign: "center", background: "none", border: "none", color: "#8a97ab", fontSize: 13, cursor: "pointer", textDecoration: "underline", marginBottom: 8 }}
                 >
-                  Skip remaining &amp; go to dashboard
+                  {finishing ? "Saving..." : "Skip remaining & go to dashboard"}
                 </button>
               ) : null}
 

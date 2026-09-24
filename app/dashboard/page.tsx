@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { authFetch } from "@/lib/api-client";
 import { SCRAMBLE_THEME } from "@/lib/scramble-theme";
 import { SERVICE_META, servicesForTier, TierKey, ServiceKey } from "@/lib/tiers";
 
@@ -31,12 +32,12 @@ export default function ClientDashboard() {
         return;
       }
 
-      const res = await fetch(`/api/scramble/me?email=${encodeURIComponent(email)}`);
+      const res = await authFetch(`/api/scramble/me?email=${encodeURIComponent(email)}`);
       if (res.ok) {
         const p = await res.json();
         setProfile(p);
 
-        const statusRes = await fetch(`/api/auth/google/status?clientId=${encodeURIComponent(email)}`);
+        const statusRes = await authFetch(`/api/auth/google/status?clientId=${encodeURIComponent(email)}`);
         if (statusRes.ok) {
           const status = await statusRes.json();
           setGoogleConnected(status.connected);

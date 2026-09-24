@@ -13,6 +13,7 @@ import {
 import StatusDot from "@/components/ui/StatusDot";
 import Badge from "@/components/ui/Badge";
 import { PageLoader } from "@/components/ui/LoadingSpinner";
+import { authFetch } from "@/lib/api-client";
 
 interface ServiceHealth {
   service: string;
@@ -80,7 +81,7 @@ export default function SettingsPage() {
 
   const checkOAuthStatus = async (cid: string) => {
     try {
-      const res = await fetch(`/api/auth/google/status?clientId=${encodeURIComponent(cid)}`);
+      const res = await authFetch(`/api/auth/google/status?clientId=${encodeURIComponent(cid)}`);
       const data = await res.json();
       setOauthStatus(data);
     } catch (error) {
@@ -114,7 +115,7 @@ export default function SettingsPage() {
     }
     setOauthLoading(true);
     try {
-      const res = await fetch("/api/auth/google/disconnect", {
+      const res = await authFetch("/api/auth/google/disconnect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clientId }),
