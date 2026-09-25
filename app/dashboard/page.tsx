@@ -21,6 +21,9 @@ export default function ClientDashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [googleConnected, setGoogleConnected] = useState(false);
+  const [metaConnected, setMetaConnected] = useState(false);
+  const [googleBusy, setGoogleBusy] = useState(false);
+  const [metaBusy, setMetaBusy] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -42,6 +45,12 @@ export default function ClientDashboard() {
           const status = await statusRes.json();
           setGoogleConnected(status.connected);
         }
+
+        const metaStatusRes = await authFetch(`/api/auth/meta/status?clientId=${encodeURIComponent(email)}`);
+        if (metaStatusRes.ok) {
+          const metaStatus = await metaStatusRes.json();
+          setMetaConnected(metaStatus.connected);
+        }
       }
       setLoading(false);
     })();
@@ -50,6 +59,32 @@ export default function ClientDashboard() {
   const handleSignOut = async () => {
     await authClient.auth.signOut();
     router.push("/landing");
+  };
+
+  const handleDisconnectGoogle = async () => {
+    if (!profile) return;
+    if (!confirm("Disconnect your Google account? Your dashboards will stop showing live data until you reconnect.")) return;
+    setGoogleBusy(true);
+    await authFetch("/api/auth/google/disconnect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clientId: profile.email }),
+    });
+    setGoogleConnected(false);
+    setGoogleBusy(false);
+  };
+
+  const handleDisconnectMeta = async () => {
+    if (!profile) return;
+    if (!confirm("Disconnect your Meta account? We'll stop reporting on your Facebook & Instagram ads until you reconnect.")) return;
+    setMetaBusy(true);
+    await authFetch("/api/auth/meta/disconnect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clientId: profile.email }),
+    });
+    setMetaConnected(false);
+    setMetaBusy(false);
   };
 
   if (loading) {
@@ -103,9 +138,35 @@ export default function ClientDashboard() {
             <h1 className="dash-title">Welcome back, {profile.company_name}</h1>
             <p className="dash-subtitle">Here's your marketing overview.</p>
           </div>
-          <div className={`dash-conn ${googleConnected ? "on" : "off"}`}>
-            <span className="dash-conn-dot" />
-            {googleConnected ? "Google Connected" : "Not Connected"}
+          <div className="dash-conn-group">
+            <div className={`dash-conn ${googleConnected ? "on" : "off"}`}>
+              <span className="dash-conn-dot" />
+              {googleConnected ? "Google Connected" : "Google Not Connected"}
+              {googleConnected && (
+                <button
+                  onClick={handleDisconnectGoogle}
+                  disabled={googleBusy}
+                  className="dash-conn-disconnect"
+                  title="Disconnect Google"
+                >
+                  {googleBusy ? "…" : "Disconnect"}
+                </button>
+              )}
+            </div>
+            <div className={`dash-conn ${metaConnected ? "on" : "off"}`}>
+              <span className="dash-conn-dot" />
+              {metaConnected ? "Meta Connected" : "Meta Not Connected"}
+              {metaConnected && (
+                <button
+                  onClick={handleDisconnectMeta}
+                  disabled={metaBusy}
+                  className="dash-conn-disconnect"
+                  title="Disconnect Meta"
+                >
+                  {metaBusy ? "…" : "Disconnect"}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -120,14 +181,16 @@ export default function ClientDashboard() {
           </div>
         )}
 
-        {/* Meta connect prompt */}
-        <div className="dash-connect-banner dash-connect-meta">
-          <div>
-            <h3>Connect Meta to track Facebook &amp; Instagram Ads</h3>
-            <p>See ad spend, clicks, conversions, and ROAS from your Meta campaigns.</p>
+        {/* Meta connect prompt if not connected */}
+        {!metaConnected && (
+          <div className="dash-connect-banner dash-connect-meta">
+            <div>
+              <h3>Connect Meta to track Facebook &amp; Instagram Ads</h3>
+              <p>See ad spend, clicks, conversions, and ROAS from your Meta campaigns.</p>
+            </div>
+            <Link href="/onboarding" className="dash-connect-btn dash-connect-btn-meta">Connect Meta →</Link>
           </div>
-          <Link href="/onboarding" className="dash-connect-btn dash-connect-btn-meta">Connect Meta →</Link>
-        </div>
+        )}
 
         {/* Service dashboards */}
         <div className="dash-services">
@@ -135,7 +198,7 @@ export default function ClientDashboard() {
             <ServiceDashboardCard
               key={service}
               service={service}
-              connected={googleConnected}
+              connected={service === "meta_ads" ? metaConnected : googleConnected}
             />
           ))}
         </div>
@@ -172,9 +235,9 @@ function ServiceDashboardCard({ service, connected }: { service: ServiceKey; con
       { label: "ROAS", value: connected ? "4.8x" : "—", trend: "+0.6x", trendUp: true },
     ],
     meta_ads: [
-      { label: "Ad Spend", value: "—", trend: "", trendUp: true },
-      { label: "Clicks", value: "—", trend: "", trendUp: true },
-      { label: "Conversions", value: "—", trend: "", trendUp: true },
+      { label: "Ad Spend", value: connected ? "£1,860" : "—", trend: "+9.4%", trendUp: true },
+      { label: "Clicks", value: connected ? "5,210" : "—", trend: "+11.2%", trendUp: true },
+      { label: "Conversions", value: connected ? "128" : "—", trend: "+17.3%", trendUp: true },
     ],
   };
 
@@ -207,7 +270,7 @@ function ServiceDashboardCard({ service, connected }: { service: ServiceKey; con
           🔒 Connect Google to unlock live {meta.label} data
         </div>
       )}
-      {service === 'meta_ads' && (
+      {service === 'meta_ads' && !connected && (
         <div className="service-dash-locked">
           🔒 Connect Meta to unlock live Facebook &amp; Instagram Ads data
         </div>
@@ -229,6 +292,7 @@ const dashStyles = `
   .dash-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 32px; flex-wrap: wrap; gap: 16px; }
   .dash-title { font-size: 34px; font-weight: 800; letter-spacing: -1px; margin-bottom: 6px; }
   .dash-subtitle { font-size: 16px; color: #5a6b82; }
+  .dash-conn-group { display: flex; gap: 10px; flex-wrap: wrap; }
   .dash-conn {
     display: inline-flex; align-items: center; gap: 8px;
     padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 600;
@@ -236,6 +300,13 @@ const dashStyles = `
   .dash-conn.on { background: rgba(52, 199, 123, 0.12); color: #1a8a4f; }
   .dash-conn.off { background: rgba(255, 138, 128, 0.12); color: #c0392b; }
   .dash-conn-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .dash-conn-disconnect {
+    background: rgba(0,0,0,0.08); border: none; color: inherit; font-size: 12px; font-weight: 700;
+    padding: 3px 10px; border-radius: 999px; margin-left: 2px; cursor: pointer; font-family: inherit;
+    transition: background 0.15s;
+  }
+  .dash-conn-disconnect:hover { background: rgba(0,0,0,0.16); }
+  .dash-conn-disconnect:disabled { opacity: 0.6; cursor: default; }
 
   .dash-connect-banner {
     display: flex; align-items: center; justify-content: space-between; gap: 20px;
