@@ -71,6 +71,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Keep scramble_users.google_connected in sync with the live connection
+    // state. Without this, the onboarding page and admin dashboard (which
+    // both read this cached flag) kept showing "Connected" after a
+    // disconnect, since it was only ever set to true on connect and never
+    // reset. Mirrors the equivalent step in /api/auth/meta/disconnect.
+    await supabase
+      .from('scramble_users')
+      .update({ google_connected: false, updated_at: new Date().toISOString() })
+      .eq('email', clientId)
+
     // Log audit event
     await logAuditEvent(supabase, connection.id, 'oauth_revoked', {
       email: connection.google_account_email,

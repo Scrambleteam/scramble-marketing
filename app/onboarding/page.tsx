@@ -59,17 +59,21 @@ function OnboardingInner() {
           setMetaConnected(profile.meta_connected || false);
         }
 
-        // Check live OAuth status
+        // Check live OAuth status. This is authoritative over the
+        // profile.google_connected / meta_connected flags set above — those
+        // are cached columns that can go stale (e.g. after a disconnect),
+        // so we always trust the live connection check over them rather
+        // than only ever upgrading to "connected".
         const statusRes = await authFetch(`/api/auth/google/status?clientId=${encodeURIComponent(userEmail)}`);
         if (statusRes.ok) {
           const status = await statusRes.json();
-          if (status.connected) setGoogleConnected(true);
+          setGoogleConnected(status.connected);
         }
 
         const metaStatusRes = await authFetch(`/api/auth/meta/status?clientId=${encodeURIComponent(userEmail)}`);
         if (metaStatusRes.ok) {
           const metaStatus = await metaStatusRes.json();
-          if (metaStatus.connected) setMetaConnected(true);
+          setMetaConnected(metaStatus.connected);
         }
       }
       setLoading(false);
