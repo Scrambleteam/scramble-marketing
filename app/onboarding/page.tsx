@@ -160,6 +160,11 @@ function OnboardingInner() {
             </div>
             <span className="sc-logo-text">Scramble</span>
           </Link>
+          {email && (
+            <Link href="/dashboard" className="sc-link" style={{ fontSize: 15 }}>
+              ← Back to dashboard
+            </Link>
+          )}
         </div>
       </nav>
 
