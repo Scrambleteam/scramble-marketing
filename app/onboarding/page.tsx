@@ -129,7 +129,12 @@ function OnboardingInner() {
           email,
           onboarding_complete: true,
           google_connected: googleConnected,
-          meta_connected: metaConnected,
+          // meta_connected intentionally left out of this PATCH until the
+          // 004_meta_oauth.sql migration is applied in Supabase -- sending
+          // it before the column exists makes every finish/skip on this
+          // page fail with "Couldn't save your progress" (caught live
+          // 2026-09-25). Re-add once the migration is confirmed run:
+          //   meta_connected: metaConnected,
           site_url: siteUrl || null,
         }),
       });
