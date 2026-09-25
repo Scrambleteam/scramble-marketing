@@ -16,6 +16,9 @@ export default function DashboardSettings() {
   const [services, setServices] = useState<ServiceKey[]>([]);
   const [connected, setConnected] = useState(false);
   const [connectedEmail, setConnectedEmail] = useState("");
+  const [metaConnected, setMetaConnected] = useState(false);
+  const [metaConnectedName, setMetaConnectedName] = useState("");
+  const [metaBusy, setMetaBusy] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -46,6 +49,13 @@ export default function DashboardSettings() {
         setConnected(status.connected);
         setConnectedEmail(status.email || "");
       }
+
+      const metaStatusRes = await authFetch(`/api/auth/meta/status?clientId=${encodeURIComponent(userEmail)}`);
+      if (metaStatusRes.ok) {
+        const metaStatus = await metaStatusRes.json();
+        setMetaConnected(metaStatus.connected);
+        setMetaConnectedName(metaStatus.name || "");
+      }
       setLoading(false);
     })();
   }, [router]);
@@ -73,6 +83,31 @@ export default function DashboardSettings() {
     setConnected(false);
     setConnectedEmail("");
     setBusy(false);
+  };
+
+  const handleConnectMeta = async () => {
+    setMetaBusy(true);
+    const res = await authFetch("/api/auth/meta/initiate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clientId: email }),
+    });
+    const data = await res.json();
+    if (data.authUrl) window.location.href = data.authUrl;
+    else setMetaBusy(false);
+  };
+
+  const handleDisconnectMeta = async () => {
+    if (!confirm("Disconnect your Meta account?")) return;
+    setMetaBusy(true);
+    await authFetch("/api/auth/meta/disconnect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clientId: email }),
+    });
+    setMetaConnected(false);
+    setMetaConnectedName("");
+    setMetaBusy(false);
   };
 
   const handleManageBilling = async () => {
@@ -176,6 +211,33 @@ export default function DashboardSettings() {
                       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                     </svg>
                     {busy ? "Opening Google..." : "Connect Google Account"}
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Meta connection */}
+            <div className="sc-card set-card">
+              <h2 className="set-card-title">Meta Account</h2>
+              {metaConnected ? (
+                <>
+                  <div className="sc-success" style={{ marginBottom: 18 }}>
+                    ✓ Connected as {metaConnectedName}
+                  </div>
+                  <button onClick={handleDisconnectMeta} disabled={metaBusy} className="set-disconnect">
+                    {metaBusy ? "..." : "Disconnect Meta Account"}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p style={{ color: "#5a6b82", marginBottom: 18, fontSize: 15 }}>
+                    Connect your Meta account so we can run and report on your Facebook &amp; Instagram ad campaigns.
+                  </p>
+                  <button onClick={handleConnectMeta} disabled={metaBusy} className="sc-btn-meta">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3V2z" fill="white" />
+                    </svg>
+                    {metaBusy ? "Opening Meta..." : "Connect Meta Account"}
                   </button>
                 </>
               )}

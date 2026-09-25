@@ -34,6 +34,12 @@ function OnboardingInner() {
       if (params.get("oauth_error")) {
         setOauthError("Google connection failed. Please try again.");
       }
+      if (params.get("meta_success")) {
+        setMetaConnected(true);
+      }
+      if (params.get("meta_error")) {
+        setOauthError("Meta connection failed. Please try again.");
+      }
 
       // Get logged-in user
       const { data } = await authClient.auth.getUser();
@@ -50,6 +56,7 @@ function OnboardingInner() {
           setTier(profile.tier || "full");
           setServices(profile.services || servicesForTier(profile.tier || "full"));
           setGoogleConnected(profile.google_connected || false);
+          setMetaConnected(profile.meta_connected || false);
         }
 
         // Check live OAuth status
@@ -57,6 +64,12 @@ function OnboardingInner() {
         if (statusRes.ok) {
           const status = await statusRes.json();
           if (status.connected) setGoogleConnected(true);
+        }
+
+        const metaStatusRes = await authFetch(`/api/auth/meta/status?clientId=${encodeURIComponent(userEmail)}`);
+        if (metaStatusRes.ok) {
+          const metaStatus = await metaStatusRes.json();
+          if (metaStatus.connected) setMetaConnected(true);
         }
       }
       setLoading(false);
@@ -115,7 +128,8 @@ function OnboardingInner() {
         body: JSON.stringify({
           email,
           onboarding_complete: true,
-          google_connected: true,
+          google_connected: googleConnected,
+          meta_connected: metaConnected,
           site_url: siteUrl || null,
         }),
       });

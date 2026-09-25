@@ -64,6 +64,17 @@ export const SCRAMBLE_THEME = `
   .sc-btn-google:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(74, 158, 255, 0.2); }
   .sc-btn-google:disabled { opacity: 0.6; cursor: not-allowed; }
 
+  .sc-btn-meta {
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    width: 100%; padding: 14px 24px; border-radius: 12px;
+    font-size: 16px; font-weight: 600; cursor: pointer;
+    background: #1877F2; color: white; border: none;
+    box-shadow: 0 4px 14px rgba(24, 119, 242, 0.3);
+    transition: all 0.2s; font-family: inherit;
+  }
+  .sc-btn-meta:hover:not(:disabled) { background: #1565C0; }
+  .sc-btn-meta:disabled { opacity: 0.6; cursor: not-allowed; }
+
   /* Glass card */
   .sc-card {
     background: rgba(255,255,255,0.9);
