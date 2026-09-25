@@ -28,7 +28,15 @@ export async function POST(request: NextRequest) {
     const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/meta/callback`
 
     if (!appId || !process.env.NEXT_PUBLIC_APP_URL) {
-      throw new Error('Missing Meta OAuth env vars (META_APP_ID or NEXT_PUBLIC_APP_URL)')
+      // TEMP DEBUG (2026-09-25, remove after diagnosing 500 on /connect):
+      return NextResponse.json(
+        {
+          error: 'Missing Meta OAuth env vars',
+          hasAppId: !!appId,
+          hasAppUrl: !!process.env.NEXT_PUBLIC_APP_URL,
+        },
+        { status: 500 }
+      )
     }
 
     // Scramble runs and optimizes campaigns on the client's behalf (this
@@ -58,7 +66,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[Meta OAuth initiate]', error)
     return NextResponse.json(
-      { error: 'Failed to initiate Meta OAuth flow' },
+      {
+        error: 'Failed to initiate Meta OAuth flow',
+        // TEMP DEBUG (2026-09-25, remove after diagnosing 500 on /connect):
+        debugMessage: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     )
   }
