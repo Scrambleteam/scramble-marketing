@@ -28,16 +28,21 @@ function OnboardingInner() {
     (async () => {
       // Check OAuth result in URL
       const params = new URLSearchParams(window.location.search);
-      if (params.get("oauth_success")) {
+      const urlGoogleSuccess = params.get("oauth_success");
+      const urlGoogleError = params.get("oauth_error");
+      const urlMetaSuccess = params.get("meta_success");
+      const urlMetaError = params.get("meta_error");
+      
+      if (urlGoogleSuccess) {
         setGoogleConnected(true);
       }
-      if (params.get("oauth_error")) {
+      if (urlGoogleError) {
         setOauthError("Google connection failed. Please try again.");
       }
-      if (params.get("meta_success")) {
+      if (urlMetaSuccess) {
         setMetaConnected(true);
       }
-      if (params.get("meta_error")) {
+      if (urlMetaError) {
         setOauthError("Meta connection failed. Please try again.");
       }
 
@@ -55,25 +60,31 @@ function OnboardingInner() {
           setSiteUrl(profile.site_url || "");
           setTier(profile.tier || "full");
           setServices(profile.services || servicesForTier(profile.tier || "full"));
-          setGoogleConnected(profile.google_connected || false);
-          setMetaConnected(profile.meta_connected || false);
+          // Only use profile.google_connected if not already set from URL param
+          if (!urlGoogleSuccess) {
+            setGoogleConnected(profile.google_connected || false);
+          }
+          if (!urlMetaSuccess) {
+            setMetaConnected(profile.meta_connected || false);
+          }
         }
 
-        // Check live OAuth status. This is authoritative over the
-        // profile.google_connected / meta_connected flags set above — those
-        // are cached columns that can go stale (e.g. after a disconnect),
-        // so we always trust the live connection check over them rather
-        // than only ever upgrading to "connected".
-        const statusRes = await authFetch(`/api/auth/google/status?clientId=${encodeURIComponent(userEmail)}`);
-        if (statusRes.ok) {
-          const status = await statusRes.json();
-          setGoogleConnected(status.connected);
+        // Check live OAuth status as fallback (if not already confirmed by URL param).
+        // Only run if we don't have a definitive answer from the callback URL.
+        if (!urlGoogleSuccess && !urlGoogleError) {
+          const statusRes = await authFetch(`/api/auth/google/status?clientId=${encodeURIComponent(userEmail)}`);
+          if (statusRes.ok) {
+            const status = await statusRes.json();
+            setGoogleConnected(status.connected);
+          }
         }
 
-        const metaStatusRes = await authFetch(`/api/auth/meta/status?clientId=${encodeURIComponent(userEmail)}`);
-        if (metaStatusRes.ok) {
-          const metaStatus = await metaStatusRes.json();
-          setMetaConnected(metaStatus.connected);
+        if (!urlMetaSuccess && !urlMetaError) {
+          const metaStatusRes = await authFetch(`/api/auth/meta/status?clientId=${encodeURIComponent(userEmail)}`);
+          if (metaStatusRes.ok) {
+            const metaStatus = await metaStatusRes.json();
+            setMetaConnected(metaStatus.connected);
+          }
         }
       }
       setLoading(false);
