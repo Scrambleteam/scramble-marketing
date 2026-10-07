@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       'openid',
       'https://www.googleapis.com/auth/userinfo.email', // read the account email
       'https://www.googleapis.com/auth/userinfo.profile', // read the account name/id
-      'https://www.googleapis.com/auth/webmasters.readonly', // Search Console (API name is "webmasters")
+      'https://www.googleapis.com/auth/webmasters', // Search Console (full access — add + read sites)
       'https://www.googleapis.com/auth/analytics.readonly', // Google Analytics (read)
       'https://www.googleapis.com/auth/analytics.edit', // Google Analytics Admin (manage)
       'https://www.googleapis.com/auth/adwords', // Google Ads
