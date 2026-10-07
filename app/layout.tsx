@@ -26,3 +26,4 @@ export default function RootLayout({
     </html>
   );
 }
+// Vercel deployment checkpoint 1791379060
