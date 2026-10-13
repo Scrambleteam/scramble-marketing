@@ -12,7 +12,7 @@ const NAV_ITEMS = [
 
 // Public/marketing routes that render their own chrome and should NOT show
 // the internal dashboard navbar.
-const PUBLIC_ROUTES = ["/landing", "/pricing", "/auth", "/onboarding", "/dashboard", "/admin-login", "/privacy-policy", "/cookie-policy", "/terms"];
+const PUBLIC_ROUTES = ["/landing", "/pricing", "/auth", "/onboarding", "/dashboard", "/admin-login", "/privacy-policy", "/cookie-policy", "/terms", "/info", "/contact"];
 
 export default function Navbar() {
   const pathname = usePathname();
