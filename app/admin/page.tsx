@@ -7,7 +7,9 @@ import { authClient } from "@/lib/auth-client";
 import { authFetch } from "@/lib/api-client";
 import { isAdminEmail } from "@/lib/admin";
 import { SCRAMBLE_THEME } from "@/lib/scramble-theme";
-import { SERVICE_META, ServiceKey } from "@/lib/tiers";
+import { SERVICE_META, ServiceKey, servicesForTier } from "@/lib/tiers";
+import AgencyGooglePanel, { AgencyStatus, AGENCY_PANEL_STYLES } from "@/components/admin/AgencyGooglePanel";
+import ClientPropertyEditor, { AgencyAccounts, PROPERTY_EDITOR_STYLES } from "@/components/admin/ClientPropertyEditor";
 
 interface Client {
   id: string;
@@ -19,6 +21,10 @@ interface Client {
   google_connected: boolean;
   created_at: string;
   is_active: boolean;
+  website_domain: string | null;
+  site_url: string | null;
+  analytics_property_id: string | null;
+  ads_customer_id: string | null;
 }
 
 interface Stats {
@@ -37,6 +43,21 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
   const [adminEmail, setAdminEmail] = useState("");
+  const [agencyStatus, setAgencyStatus] = useState<AgencyStatus | null>(null);
+  const [accounts, setAccounts] = useState<AgencyAccounts | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const loadAgency = async () => {
+    const res = await authFetch("/api/auth/google/status");
+    if (!res.ok) return;
+    const status: AgencyStatus = await res.json();
+    setAgencyStatus(status);
+    setAccounts(null);
+    if (status.connected) {
+      const accRes = await authFetch("/api/admin/google/accounts");
+      if (accRes.ok) setAccounts(await accRes.json());
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -51,6 +72,7 @@ export default function AdminDashboard() {
       setAdminEmail(email || "");
       setAuthorized(true);
 
+      loadAgency();
       const res = await authFetch("/api/scramble/clients");
       if (res.ok) {
         const d = await res.json();
@@ -79,6 +101,8 @@ export default function AdminDashboard() {
     <div className="sc-root">
       <style>{SCRAMBLE_THEME}</style>
       <style>{adminStyles}</style>
+      <style>{AGENCY_PANEL_STYLES}</style>
+      <style>{PROPERTY_EDITOR_STYLES}</style>
 
       {/* Nav */}
       <nav className="sc-nav">
@@ -106,10 +130,13 @@ export default function AdminDashboard() {
             <div className="sc-eyebrow-admin">Operations Hub</div>
             <h1 className="admin-title">Client Management</h1>
             <p className="admin-subtitle">
-              Clients onboard themselves via the signup flow. Monitor connections and services here.
+              Clients sign up and add the agency Google account to their Search Console, GA4 and
+              Google Ads. Assign each client&apos;s properties here and their dashboard fills in.
             </p>
           </div>
         </div>
+
+        <AgencyGooglePanel status={agencyStatus} onChange={loadAgency} />
 
         {/* Stats row */}
         {stats && (
@@ -120,7 +147,7 @@ export default function AdminDashboard() {
             </div>
             <div className="admin-stat">
               <div className="admin-stat-value" style={{ color: "#34c77b" }}>{stats.connected}</div>
-              <div className="admin-stat-label">Google Connected</div>
+              <div className="admin-stat-label">Google Assigned</div>
             </div>
             <div className="admin-stat">
               <div className="admin-stat-value" style={{ color: "#e89b1f" }}>{stats.onboarding}</div>
@@ -150,14 +177,17 @@ export default function AdminDashboard() {
         ) : (
           <div className="admin-clients">
             {clients.map((client) => (
-              <div className="admin-client-card" key={client.id}>
+              <div className="admin-client-card" key={client.id} style={editingId === client.id ? { flexWrap: "wrap" } : undefined}>
                 <div className="admin-client-main">
                   <div className="admin-client-avatar">
                     {client.company_name.charAt(0).toUpperCase()}
                   </div>
                   <div className="admin-client-info">
                     <div className="admin-client-name">{client.company_name}</div>
-                    <div className="admin-client-email">{client.email}</div>
+                    <div className="admin-client-email">
+                      {client.email}
+                      {client.website_domain && <> · {client.website_domain}</>}
+                    </div>
                   </div>
                 </div>
 
@@ -176,14 +206,36 @@ export default function AdminDashboard() {
                 <div className="admin-client-status">
                   {client.google_connected ? (
                     <span className="admin-status connected">
-                      <span className="admin-status-dot" /> Connected
+                      <span className="admin-status-dot" /> Assigned
                     </span>
                   ) : (
                     <span className="admin-status pending">
-                      <span className="admin-status-dot" /> Not connected
+                      <span className="admin-status-dot" /> Not assigned
                     </span>
                   )}
+                  <button
+                    className="admin-assign-btn"
+                    onClick={() => setEditingId(editingId === client.id ? null : client.id)}
+                  >
+                    {editingId === client.id ? "Close" : "Assign Google"}
+                  </button>
                 </div>
+
+                {editingId === client.id && (
+                  <ClientPropertyEditor
+                    clientId={client.id}
+                    services={client.services?.length ? client.services : servicesForTier(client.tier)}
+                    initial={{
+                      site_url: client.site_url,
+                      analytics_property_id: client.analytics_property_id,
+                      ads_customer_id: client.ads_customer_id,
+                    }}
+                    accounts={accounts}
+                    onSaved={(saved) =>
+                      setClients((cs) => cs.map((c) => (c.id === client.id ? { ...c, ...saved } : c)))
+                    }
+                  />
+                )}
               </div>
             ))}
           </div>
@@ -278,6 +330,11 @@ const adminStyles = `
   .admin-status.connected { color: #1a8a4f; }
   .admin-status.pending { color: #c0392b; }
   .admin-status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .admin-assign-btn {
+    display: block; margin: 8px 0 0 auto; padding: 6px 12px; border-radius: 9px; border: none; cursor: pointer;
+    font-family: inherit; font-size: 13px; font-weight: 600; color: #2d7fe0; background: rgba(74, 158, 255, 0.1);
+  }
+  .admin-assign-btn:hover { background: rgba(74, 158, 255, 0.18); }
 
   @media (max-width: 760px) {
     .admin-stats { grid-template-columns: repeat(2, 1fr); }

@@ -13,16 +13,32 @@ interface Profile {
   company_name: string;
   tier: TierKey;
   services: ServiceKey[];
-  google_connected: boolean;
 }
+
+interface Metric {
+  label: string;
+  current: number;
+  previous: number;
+  format: "number" | "currency" | "duration" | "position" | "multiplier";
+  currency?: string;
+  lowerIsBetter?: boolean;
+}
+
+type ServiceData =
+  | { status: "ok"; period: { start: string; end: string }; metrics: Metric[] }
+  | { status: "not_set_up" }
+  | { status: "unavailable" }
+  | null;
+
+type GoogleService = "search_console" | "analytics" | "ads";
+type Metrics = Partial<Record<GoogleService, ServiceData>>;
 
 export default function ClientDashboard() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [googleConnected, setGoogleConnected] = useState(false);
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [metaConnected, setMetaConnected] = useState(false);
-  const [googleBusy, setGoogleBusy] = useState(false);
   const [metaBusy, setMetaBusy] = useState(false);
 
   useEffect(() => {
@@ -40,11 +56,12 @@ export default function ClientDashboard() {
         const p = await res.json();
         setProfile(p);
 
-        const statusRes = await authFetch(`/api/auth/google/status?clientId=${encodeURIComponent(email)}`);
-        if (statusRes.ok) {
-          const status = await statusRes.json();
-          setGoogleConnected(status.connected);
-        }
+        // Google data is read by the Scramble team's agency connection;
+        // the client never connects Google themselves.
+        authFetch("/api/dashboard/metrics")
+          .then((r) => (r.ok ? r.json() : {}))
+          .then(setMetrics)
+          .catch(() => setMetrics({}));
 
         const metaStatusRes = await authFetch(`/api/auth/meta/status?clientId=${encodeURIComponent(email)}`);
         if (metaStatusRes.ok) {
@@ -59,19 +76,6 @@ export default function ClientDashboard() {
   const handleSignOut = async () => {
     await authClient.auth.signOut();
     router.push("/landing");
-  };
-
-  const handleDisconnectGoogle = async () => {
-    if (!profile) return;
-    if (!confirm("Disconnect your Google account? Your dashboards will stop showing live data until you reconnect.")) return;
-    setGoogleBusy(true);
-    await authFetch("/api/auth/google/disconnect", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clientId: profile.email }),
-    });
-    setGoogleConnected(false);
-    setGoogleBusy(false);
   };
 
   const handleDisconnectMeta = async () => {
@@ -136,23 +140,9 @@ export default function ClientDashboard() {
         <div className="dash-header">
           <div>
             <h1 className="dash-title">Welcome back, {profile.company_name}</h1>
-            <p className="dash-subtitle">Here's your marketing overview.</p>
+            <p className="dash-subtitle">Your marketing over the last 28 days, compared with the 28 days before.</p>
           </div>
           <div className="dash-conn-group">
-            <div className={`dash-conn ${googleConnected ? "on" : "off"}`}>
-              <span className="dash-conn-dot" />
-              {googleConnected ? "Google Connected" : "Google Not Connected"}
-              {googleConnected && (
-                <button
-                  onClick={handleDisconnectGoogle}
-                  disabled={googleBusy}
-                  className="dash-conn-disconnect"
-                  title="Disconnect Google"
-                >
-                  {googleBusy ? "…" : "Disconnect"}
-                </button>
-              )}
-            </div>
             <div className={`dash-conn ${metaConnected ? "on" : "off"}`}>
               <span className="dash-conn-dot" />
               {metaConnected ? "Meta Connected" : "Meta Not Connected"}
@@ -169,17 +159,6 @@ export default function ClientDashboard() {
             </div>
           </div>
         </div>
-
-        {/* Google connect prompt if not connected */}
-        {!googleConnected && (
-          <div className="dash-connect-banner">
-            <div>
-              <h3>Connect your Google account to see live data</h3>
-              <p>Your dashboards are ready — connect Google to start pulling your data.</p>
-            </div>
-            <Link href="/onboarding" className="dash-connect-btn">Connect Google →</Link>
-          </div>
-        )}
 
         {/* Meta connect prompt if not connected */}
         {!metaConnected && (
@@ -198,14 +177,15 @@ export default function ClientDashboard() {
             <ServiceDashboardCard
               key={service}
               service={service}
-              connected={service === "meta_ads" ? metaConnected : googleConnected}
+              data={service === "meta_ads" ? undefined : metrics?.[service] ?? (metrics ? null : undefined)}
+              metaConnected={metaConnected}
             />
           ))}
         </div>
 
         {/* Settings link */}
         <div className="dash-footer-links">
-          <Link href="/dashboard/settings" className="sc-link">Manage Google connection & settings →</Link>
+          <Link href="/dashboard/settings" className="sc-link">Account, billing & data access →</Link>
         </div>
       </div>
     </div>
@@ -214,32 +194,62 @@ export default function ClientDashboard() {
 
 /* ─── Per-service dashboard card ─── */
 
-function ServiceDashboardCard({ service, connected }: { service: ServiceKey; connected: boolean }) {
+function ServiceDashboardCard({
+  service,
+  data,
+  metaConnected,
+}: {
+  service: ServiceKey;
+  /** undefined while loading (or Meta); null if not in the response */
+  data: ServiceData | undefined;
+  metaConnected: boolean;
+}) {
   const meta = SERVICE_META[service];
 
-  // Placeholder metrics per service (real data comes from subagents later)
-  const METRICS: Record<ServiceKey, { label: string; value: string; trend: string; trendUp: boolean }[]> = {
-    search_console: [
-      { label: "Impressions", value: connected ? "248,120" : "—", trend: "+12.4%", trendUp: true },
-      { label: "Clicks", value: connected ? "8,420" : "—", trend: "+8.1%", trendUp: true },
-      { label: "Avg Position", value: connected ? "14.2" : "—", trend: "+2.3", trendUp: true },
-    ],
-    analytics: [
-      { label: "Users", value: connected ? "12,840" : "—", trend: "+6.7%", trendUp: true },
-      { label: "Sessions", value: connected ? "19,210" : "—", trend: "+9.2%", trendUp: true },
-      { label: "Avg Dwell", value: connected ? "1m 48s" : "—", trend: "+14s", trendUp: true },
-    ],
-    ads: [
-      { label: "Spend", value: connected ? "£3,240" : "—", trend: "-4.1%", trendUp: true },
-      { label: "Conversions", value: connected ? "342" : "—", trend: "+23.6%", trendUp: true },
-      { label: "ROAS", value: connected ? "4.8x" : "—", trend: "+0.6x", trendUp: true },
-    ],
-    meta_ads: [
-      { label: "Ad Spend", value: connected ? "£1,860" : "—", trend: "+9.4%", trendUp: true },
-      { label: "Clicks", value: connected ? "5,210" : "—", trend: "+11.2%", trendUp: true },
-      { label: "Conversions", value: connected ? "128" : "—", trend: "+17.3%", trendUp: true },
-    ],
-  };
+  let body: React.ReactNode;
+  if (service === "meta_ads") {
+    body = (
+      <div className="service-dash-locked">
+        {metaConnected
+          ? "Your Meta account is connected. Facebook & Instagram results will appear here soon."
+          : "🔒 Connect Meta to unlock Facebook & Instagram Ads data"}
+      </div>
+    );
+  } else if (data === undefined) {
+    body = <div className="service-dash-locked">Loading your data…</div>;
+  } else if (!data || data.status === "not_set_up") {
+    body = (
+      <div className="service-dash-locked">
+        Your Scramble team is setting this up. Your {meta.label} data will appear here once it&apos;s connected.
+      </div>
+    );
+  } else if (data.status === "unavailable") {
+    body = (
+      <div className="service-dash-locked">
+        We couldn&apos;t load your {meta.label} data just now. Please check back later, or contact your Scramble team if this continues.
+      </div>
+    );
+  } else {
+    body = (
+      <>
+        <div className="service-dash-stats">
+          {data.metrics.map((m) => {
+            const trend = formatTrend(m);
+            return (
+              <div className="service-stat" key={m.label}>
+                <div className="service-stat-label">{m.label}</div>
+                <div className="service-stat-value">{formatValue(m, m.current)}</div>
+                {trend && <div className={`service-stat-trend ${trend.good ? "up" : "down"}`}>{trend.text}</div>}
+              </div>
+            );
+          })}
+        </div>
+        <p className="service-dash-period">
+          {formatDate(data.period.start)} – {formatDate(data.period.end)}
+        </p>
+      </>
+    );
+  }
 
   return (
     <div className="service-dash">
@@ -250,33 +260,44 @@ function ServiceDashboardCard({ service, connected }: { service: ServiceKey; con
           <p className="service-dash-desc">{meta.desc}</p>
         </div>
       </div>
-
-      <div className="service-dash-stats">
-        {METRICS[service].map((m, i) => (
-          <div className="service-stat" key={i}>
-            <div className="service-stat-label">{m.label}</div>
-            <div className="service-stat-value">{m.value}</div>
-            {connected && (
-              <div className={`service-stat-trend ${m.trendUp ? "up" : "down"}`}>
-                {m.trendUp ? "▲" : "▼"} {m.trend}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {!connected && service !== 'meta_ads' && (
-        <div className="service-dash-locked">
-          🔒 Connect Google to unlock live {meta.label} data
-        </div>
-      )}
-      {service === 'meta_ads' && !connected && (
-        <div className="service-dash-locked">
-          🔒 Connect Meta to unlock live Facebook &amp; Instagram Ads data
-        </div>
-      )}
+      {body}
     </div>
   );
+}
+
+function formatValue(m: Metric, v: number): string {
+  switch (m.format) {
+    case "currency":
+      return new Intl.NumberFormat("en-GB", { style: "currency", currency: m.currency || "GBP", maximumFractionDigits: 0 }).format(v);
+    case "duration": {
+      const mins = Math.floor(v / 60);
+      const secs = Math.round(v % 60);
+      return mins ? `${mins}m ${secs}s` : `${secs}s`;
+    }
+    case "position":
+      return v ? v.toFixed(1) : "—";
+    case "multiplier":
+      return `${v.toFixed(1)}x`;
+    default:
+      return new Intl.NumberFormat("en-GB", { maximumFractionDigits: v < 100 ? 1 : 0 }).format(v);
+  }
+}
+
+function formatTrend(m: Metric): { text: string; good: boolean } | null {
+  if (!m.previous || !m.current) return null;
+  const change = m.current - m.previous;
+  if (change === 0) return null;
+  const up = change > 0;
+  const good = m.lowerIsBetter ? !up : up;
+  const text =
+    m.format === "position" || m.format === "multiplier"
+      ? `${Math.abs(change).toFixed(1)}`
+      : `${Math.abs((change / m.previous) * 100).toFixed(1)}%`;
+  return { text: `${up ? "▲" : "▼"} ${text}`, good };
+}
+
+function formatDate(iso: string) {
+  return new Date(iso + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
 const dashStyles = `
@@ -362,6 +383,8 @@ const dashStyles = `
   .service-stat-trend { font-size: 13px; font-weight: 700; margin-top: 6px; }
   .service-stat-trend.up { color: #34c77b; }
   .service-stat-trend.down { color: #e74c3c; }
+
+  .service-dash-period { margin-top: 14px; font-size: 13px; color: #8a97ab; }
 
   .service-dash-locked {
     margin-top: 20px; padding: 14px; border-radius: 12px; text-align: center;

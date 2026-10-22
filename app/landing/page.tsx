@@ -270,8 +270,8 @@ const FEATURES = [
     icon: <span style={{ fontSize: 24 }}>⚡</span>,
   },
   {
-    title: "One Secure Connection",
-    desc: "Connect your Google account once. We handle the rest — securely, with tokens encrypted at rest.",
+    title: "You Stay in Control",
+    desc: "Add our team to your Google accounts and we handle the rest. Remove our access whenever you like.",
     gradient: "linear-gradient(135deg, #a5c8ff 0%, #6ba8ff 100%)",
     icon: <span style={{ fontSize: 24 }}>🔐</span>,
   },
@@ -289,8 +289,8 @@ const STEPS = [
     desc: "Pick the tier that fits your needs. Setup takes under two minutes.",
   },
   {
-    title: "Connect your Google account",
-    desc: "One secure OAuth connection unlocks Search Console, Analytics, and Ads.",
+    title: "Give us access",
+    desc: "Add our team to your Search Console, Analytics and Ads. It takes a couple of minutes.",
   },
   {
     title: "Watch your dashboard come alive",

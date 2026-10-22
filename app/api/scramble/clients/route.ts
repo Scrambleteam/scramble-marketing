@@ -18,7 +18,7 @@ export async function GET(_request: NextRequest) {
     const supabase = createAdminSupabaseClient();
     const { data, error } = await supabase
       .from("scramble_users")
-      .select("id, email, company_name, tier, services, onboarding_complete, google_connected, created_at, is_active")
+      .select("id, email, company_name, tier, services, onboarding_complete, google_connected, created_at, is_active, website_domain, site_url, analytics_property_id, ads_customer_id")
       .order("created_at", { ascending: false });
 
     if (error) {
