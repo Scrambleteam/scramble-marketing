@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { isAdminEmail } from "./admin";
 
 /**
  * Server-side auth helper for API routes.
@@ -60,6 +61,14 @@ async function verifyToken(token: string) {
   const { data: { user }, error } = await supabase.auth.getUser(token);
   if (error || !user) return null;
   return user;
+}
+
+/**
+ * Returns the signed-in user only if they are on the admin allowlist.
+ */
+export async function getAdminUser(request: NextRequest) {
+  const user = await getAuthenticatedUser(request);
+  return user && isAdminEmail(user.email) ? user : null;
 }
 
 /**

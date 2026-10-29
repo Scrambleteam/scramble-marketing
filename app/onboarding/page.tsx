@@ -6,7 +6,24 @@ import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { authFetch, authFetchOrThrow } from "@/lib/api-client";
 import { SCRAMBLE_THEME } from "@/lib/scramble-theme";
-import { SERVICE_META, servicesForTier, TierKey, ServiceKey } from "@/lib/tiers";
+import { servicesForTier, TierKey, ServiceKey } from "@/lib/tiers";
+import { AGENCY_GOOGLE_EMAIL } from "@/lib/admin";
+
+// How a client gives the agency Google account access, per service.
+const GOOGLE_ACCESS_STEPS: Partial<Record<ServiceKey, { title: string; steps: string }>> = {
+  search_console: {
+    title: "Search Console",
+    steps: "Settings → Users and permissions → Add user. Paste our email and choose “Full”.",
+  },
+  analytics: {
+    title: "Google Analytics (GA4)",
+    steps: "Admin → Property access management → + → Add users. Paste our email and choose “Viewer”.",
+  },
+  ads: {
+    title: "Google Ads",
+    steps: "Admin → Access and security → + → paste our email and choose “Standard”. If we've sent you a link request from our manager account, you can accept that instead.",
+  },
+};
 
 function OnboardingInner() {
   const router = useRouter();
@@ -15,10 +32,12 @@ function OnboardingInner() {
   const [siteUrl, setSiteUrl] = useState<string>("");
   const [tier, setTier] = useState<TierKey>("full");
   const [services, setServices] = useState<ServiceKey[]>([]);
-  const [googleConnected, setGoogleConnected] = useState(false);
+  // Clients now give the agency account access in Google; this just records
+  // that they've ticked it off before moving on.
+  const [accessShared, setAccessShared] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [metaConnected, setMetaConnected] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [connecting, setConnecting] = useState(false);
   const [connectingMeta, setConnectingMeta] = useState(false);
   const [oauthError, setOauthError] = useState("");
   const [finishError, setFinishError] = useState("");
@@ -28,17 +47,9 @@ function OnboardingInner() {
     (async () => {
       // Check OAuth result in URL
       const params = new URLSearchParams(window.location.search);
-      const urlGoogleSuccess = params.get("oauth_success");
-      const urlGoogleError = params.get("oauth_error");
       const urlMetaSuccess = params.get("meta_success");
       const urlMetaError = params.get("meta_error");
       
-      if (urlGoogleSuccess) {
-        setGoogleConnected(true);
-      }
-      if (urlGoogleError) {
-        setOauthError("Google connection failed. Please try again.");
-      }
       if (urlMetaSuccess) {
         setMetaConnected(true);
       }
@@ -57,25 +68,11 @@ function OnboardingInner() {
         if (res.ok) {
           const profile = await res.json();
           setCompany(profile.company_name || "");
-          setSiteUrl(profile.site_url || "");
+          setSiteUrl(profile.website_domain || "");
           setTier(profile.tier || "full");
           setServices(profile.services || servicesForTier(profile.tier || "full"));
-          // Only use profile.google_connected if not already set from URL param
-          if (!urlGoogleSuccess) {
-            setGoogleConnected(profile.google_connected || false);
-          }
           if (!urlMetaSuccess) {
             setMetaConnected(profile.meta_connected || false);
-          }
-        }
-
-        // Check live OAuth status as fallback (if not already confirmed by URL param).
-        // Only run if we don't have a definitive answer from the callback URL.
-        if (!urlGoogleSuccess && !urlGoogleError) {
-          const statusRes = await authFetch(`/api/auth/google/status?clientId=${encodeURIComponent(userEmail)}`);
-          if (statusRes.ok) {
-            const status = await statusRes.json();
-            setGoogleConnected(status.connected);
           }
         }
 
@@ -91,41 +88,13 @@ function OnboardingInner() {
     })();
   }, []);
 
-  const handleConnectGoogle = async () => {
-    setConnecting(true);
-    setOauthError("");
-
-    // Resolve email: prefer state, else the live session, else the URL param.
-    let clientEmail = email;
-    if (!clientEmail) {
-      const { data } = await authClient.auth.getUser();
-      clientEmail = data.user?.email || new URLSearchParams(window.location.search).get("email") || "";
-      if (clientEmail) setEmail(clientEmail);
-    }
-
-    if (!clientEmail) {
-      setOauthError("We couldn't find your session. Please sign in again.");
-      setConnecting(false);
-      return;
-    }
-
+  const copyEmail = async () => {
     try {
-      const res = await fetch("/api/auth/google/initiate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ clientId: clientEmail }),
-      });
-      const data = await res.json();
-      if (res.ok && data.authUrl) {
-        window.location.href = data.authUrl;
-      } else {
-        setOauthError(data.error || "Could not start Google connection.");
-        setConnecting(false);
-      }
-    } catch (err) {
-      console.error("[connect google]", err);
-      setOauthError("Could not start Google connection. Please try again.");
-      setConnecting(false);
+      await navigator.clipboard.writeText(AGENCY_GOOGLE_EMAIL);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard blocked; the address is visible to copy by hand
     }
   };
 
@@ -143,9 +112,8 @@ function OnboardingInner() {
         body: JSON.stringify({
           email,
           onboarding_complete: true,
-          google_connected: googleConnected,
           meta_connected: metaConnected,
-          site_url: siteUrl || null,
+          website_domain: siteUrl || null,
         }),
       });
       router.push("/dashboard");
@@ -191,17 +159,17 @@ function OnboardingInner() {
             <span>Account</span>
           </div>
           <div className="onboard-step-bar" />
-          <div className={`onboard-step ${googleConnected ? "done" : "active"}`}>
-            <div className="onboard-step-circle">{googleConnected ? "✓" : "2"}</div>
+          <div className={`onboard-step ${accessShared ? "done" : "active"}`}>
+            <div className="onboard-step-circle">{accessShared ? "✓" : "2"}</div>
             <span>Google</span>
           </div>
           <div className="onboard-step-bar" />
-          <div className={`onboard-step ${googleConnected ? (metaConnected ? "done" : "active") : ""}`}>
+          <div className={`onboard-step ${accessShared ? (metaConnected ? "done" : "active") : ""}`}>
             <div className="onboard-step-circle">{metaConnected ? "✓" : "3"}</div>
             <span>Meta</span>
           </div>
           <div className="onboard-step-bar" />
-          <div className={`onboard-step ${googleConnected && metaConnected ? "active" : ""}`}>
+          <div className={`onboard-step ${accessShared && metaConnected ? "active" : ""}`}>
             <div className="onboard-step-circle">4</div>
             <span>Done</span>
           </div>
@@ -216,8 +184,8 @@ function OnboardingInner() {
                 Welcome{company ? `, ${company}` : ""} 👋
               </h1>
               <p className="onboard-sub">
-                Connect your accounts to unlock your dashboards. We&apos;ll pull your
-                data automatically — you won&apos;t need to do anything manually.
+                Give the Scramble team access to your Google accounts and connect Meta.
+                We&apos;ll set up your dashboards from there.
               </p>
 
               {/* Website URL */}
@@ -234,14 +202,14 @@ function OnboardingInner() {
                   style={{ width: "100%" }}
                 />
                 <p style={{ fontSize: "0.75rem", color: "#5a6b82", marginTop: 4 }}>
-                  We&apos;ll use this to find your Search Console property automatically.
+                  This helps us match your website to the right Google accounts.
                 </p>
               </div>
 
               {oauthError && <div className="sc-error" style={{ marginBottom: 20 }}>{oauthError}</div>}
 
               {/* ── Connection Cards ── */}
-              <div className="onboard-services-label" style={{ marginBottom: 14 }}>Connect your accounts</div>
+              <div className="onboard-services-label" style={{ marginBottom: 14 }}>Give us access</div>
 
               {/* Google Connection */}
               <div className="connect-card" style={{ marginBottom: 14 }}>
@@ -257,22 +225,37 @@ function OnboardingInner() {
                     </div>
                     <div>
                       <div className="connect-card-title">Google</div>
-                      <div className="connect-card-desc">Search Console, Analytics &amp; Ads</div>
+                      <div className="connect-card-desc">Add our team as a user on your accounts</div>
                     </div>
                   </div>
-                  {googleConnected && <span className="connect-status-done">✓ Connected</span>}
+                  {accessShared && <span className="connect-status-done">✓ Done</span>}
                 </div>
-                {!googleConnected && (
-                  <button onClick={handleConnectGoogle} className="sc-btn-google" disabled={connecting} style={{ marginTop: 14 }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                    </svg>
-                    {connecting ? "Opening Google..." : "Connect Google Account"}
+
+                <div className="access-email">
+                  <code>{AGENCY_GOOGLE_EMAIL}</code>
+                  <button type="button" onClick={copyEmail} className="access-copy">
+                    {copied ? "Copied" : "Copy"}
                   </button>
-                )}
+                </div>
+
+                <ol className="access-steps">
+                  {displayServices
+                    .filter((s) => GOOGLE_ACCESS_STEPS[s])
+                    .map((s) => (
+                      <li key={s}>
+                        <strong>{GOOGLE_ACCESS_STEPS[s]!.title}:</strong> {GOOGLE_ACCESS_STEPS[s]!.steps}
+                      </li>
+                    ))}
+                </ol>
+
+                <label className="access-confirm">
+                  <input
+                    type="checkbox"
+                    checked={accessShared}
+                    onChange={(e) => setAccessShared(e.target.checked)}
+                  />
+                  I&apos;ve added Scramble to my Google accounts
+                </label>
               </div>
 
               {/* Meta Connection */}
@@ -328,11 +311,11 @@ function OnboardingInner() {
               {finishError && <div className="sc-error" style={{ marginBottom: 16 }}>{finishError}</div>}
 
               {/* Done / Go to dashboard */}
-              {googleConnected && metaConnected ? (
+              {accessShared && metaConnected ? (
                 <button onClick={handleFinish} className="sc-btn-primary" disabled={finishing}>
                   {finishing ? "Saving..." : "Go to my dashboard →"}
                 </button>
-              ) : (googleConnected || metaConnected) && !(googleConnected && metaConnected) ? (
+              ) : accessShared || metaConnected ? (
                 <button
                   onClick={handleFinish}
                   disabled={finishing}
@@ -343,7 +326,7 @@ function OnboardingInner() {
               ) : null}
 
               <p className="onboard-secure">
-                🔒 Your data is secure. We only request read access to the services in your plan.
+                🔒 You stay in control. You can remove our access at any time from your Google and Meta account settings.
               </p>
             </>
           )}
@@ -416,6 +399,19 @@ const onboardingStyles = `
   .connect-icon-meta { background: #1877F2; }
   .connect-card-title { font-size: 15px; font-weight: 700; color: #16243a; }
   .connect-card-desc { font-size: 13px; color: #8a97ab; }
+  .access-email {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px;
+    padding: 10px 12px; border-radius: 10px; background: rgba(74, 158, 255, 0.08);
+  }
+  .access-email code { font-size: 14px; font-weight: 600; color: #16243a; word-break: break-all; }
+  .access-copy {
+    flex-shrink: 0; padding: 6px 12px; border-radius: 8px; border: none; cursor: pointer; font-family: inherit;
+    font-size: 13px; font-weight: 600; color: #2d7fe0; background: white;
+  }
+  .access-steps { margin: 14px 0 0 18px; padding: 0; font-size: 13px; color: #4a5a72; line-height: 1.55; }
+  .access-steps li { margin-bottom: 8px; }
+  .access-confirm { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: 14px; font-weight: 600; color: #16243a; cursor: pointer; }
+  .access-confirm input { width: 18px; height: 18px; accent-color: #4a9eff; }
   .connect-status-done {
     font-size: 13px; font-weight: 600; color: #34c77b;
     background: rgba(52, 199, 123, 0.1); padding: 4px 12px; border-radius: 100px;

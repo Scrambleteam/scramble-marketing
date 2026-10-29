@@ -126,7 +126,7 @@ const STEPS = [
   },
   {
     title: "Connection",
-    desc: "With your permission, we link your Google and Meta accounts. This lets us work from your actual data, not estimates. You keep full control and can disconnect at any time.",
+    desc: "You add our team as a user on your Google accounts and connect Meta. This lets us work from your actual data, not estimates. You keep full control and can remove our access at any time.",
   },
   {
     title: "Ongoing visibility",

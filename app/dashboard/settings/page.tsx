@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { authFetch } from "@/lib/api-client";
+import { AGENCY_GOOGLE_EMAIL } from "@/lib/admin";
 import { SCRAMBLE_THEME } from "@/lib/scramble-theme";
 import { SERVICE_META, servicesForTier, TierKey, ServiceKey } from "@/lib/tiers";
 
@@ -14,14 +15,11 @@ export default function DashboardSettings() {
   const [company, setCompany] = useState("");
   const [tier, setTier] = useState<TierKey>("full");
   const [services, setServices] = useState<ServiceKey[]>([]);
-  const [connected, setConnected] = useState(false);
-  const [connectedEmail, setConnectedEmail] = useState("");
   const [metaConnected, setMetaConnected] = useState(false);
   const [metaConnectedName, setMetaConnectedName] = useState("");
   const [metaBusy, setMetaBusy] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState(false);
   const [billingBusy, setBillingBusy] = useState(false);
 
   useEffect(() => {
@@ -43,13 +41,6 @@ export default function DashboardSettings() {
         setSubscriptionStatus(p.subscription_status || null);
       }
 
-      const statusRes = await authFetch(`/api/auth/google/status?clientId=${encodeURIComponent(userEmail)}`);
-      if (statusRes.ok) {
-        const status = await statusRes.json();
-        setConnected(status.connected);
-        setConnectedEmail(status.email || "");
-      }
-
       const metaStatusRes = await authFetch(`/api/auth/meta/status?clientId=${encodeURIComponent(userEmail)}`);
       if (metaStatusRes.ok) {
         const metaStatus = await metaStatusRes.json();
@@ -59,31 +50,6 @@ export default function DashboardSettings() {
       setLoading(false);
     })();
   }, [router]);
-
-  const handleConnect = async () => {
-    setBusy(true);
-    const res = await authFetch("/api/auth/google/initiate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clientId: email }),
-    });
-    const data = await res.json();
-    if (data.authUrl) window.location.href = data.authUrl;
-    else setBusy(false);
-  };
-
-  const handleDisconnect = async () => {
-    if (!confirm("Disconnect your Google account?")) return;
-    setBusy(true);
-    await authFetch("/api/auth/google/disconnect", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clientId: email }),
-    });
-    setConnected(false);
-    setConnectedEmail("");
-    setBusy(false);
-  };
 
   const handleConnectMeta = async () => {
     setMetaBusy(true);
@@ -186,34 +152,17 @@ export default function DashboardSettings() {
               </button>
             </div>
 
-            {/* Google connection */}
+            {/* Google access */}
             <div className="sc-card set-card">
-              <h2 className="set-card-title">Google Account</h2>
-              {connected ? (
-                <>
-                  <div className="sc-success" style={{ marginBottom: 18 }}>
-                    ✓ Connected as {connectedEmail}
-                  </div>
-                  <button onClick={handleDisconnect} disabled={busy} className="set-disconnect">
-                    {busy ? "..." : "Disconnect Google Account"}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p style={{ color: "#5a6b82", marginBottom: 18, fontSize: 15 }}>
-                    Connect your Google account to pull live data into your dashboards.
-                  </p>
-                  <button onClick={handleConnect} disabled={busy} className="sc-btn-google">
-                    <svg width="20" height="20" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                    </svg>
-                    {busy ? "Opening Google..." : "Connect Google Account"}
-                  </button>
-                </>
-              )}
+              <h2 className="set-card-title">Google data access</h2>
+              <p style={{ color: "#5a6b82", marginBottom: 12, fontSize: 15, lineHeight: 1.6 }}>
+                Your Scramble team reads your Search Console, Analytics and Google Ads data through
+                our agency account, <strong>{AGENCY_GOOGLE_EMAIL}</strong>, which you added as a user.
+              </p>
+              <p style={{ color: "#5a6b82", fontSize: 14, lineHeight: 1.6 }}>
+                To stop sharing, remove that address from the user settings in each Google product.
+                Your dashboard will stop showing that data.
+              </p>
             </div>
 
             {/* Meta connection */}

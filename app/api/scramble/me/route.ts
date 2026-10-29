@@ -73,12 +73,12 @@ export async function PATCH(request: NextRequest) {
     if ("tier" in updates) allowed.tier = updates.tier;
     if ("services" in updates) allowed.services = updates.services;
     if ("onboarding_complete" in updates) allowed.onboarding_complete = updates.onboarding_complete;
-    if ("google_connected" in updates) allowed.google_connected = updates.google_connected;
     if ("meta_connected" in updates) allowed.meta_connected = updates.meta_connected;
-    if ("site_url" in updates) allowed.site_url = updates.site_url;
-    if ("analytics_property_id" in updates) allowed.analytics_property_id = updates.analytics_property_id;
-    if ("ads_customer_id" in updates) allowed.ads_customer_id = updates.ads_customer_id;
     if ("website_domain" in updates) allowed.website_domain = updates.website_domain;
+    // site_url, analytics_property_id, ads_customer_id and google_connected are
+    // set by admins only (/api/admin/clients/[id]). They decide which data the
+    // agency Google connection reads for this client, so a client must never
+    // be able to point them at someone else's property.
     allowed.updated_at = new Date().toISOString();
 
     const supabase = createAdminSupabaseClient();
