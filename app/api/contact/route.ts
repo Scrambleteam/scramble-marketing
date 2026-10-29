@@ -1,9 +1,9 @@
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase";
 import { apiError, apiOk } from "@/lib/api-response";
-import { normaliseEnquiry, validateEnquiry } from "@/lib/enquiry";
-
-const NOTIFY_EMAIL = "helloscrambleteam@gmail.com";
+import { EnquiryInput, normaliseEnquiry, validateEnquiry } from "@/lib/enquiry";
+import { sendEmail } from "@/lib/email";
+import { buildEnquiryEmail } from "@/lib/enquiry-email";
 
 /**
  * POST /api/contact
@@ -51,7 +51,10 @@ export async function POST(request: NextRequest) {
       return apiError("INTERNAL_ERROR", "We couldn't send your enquiry. Please try again.", 500);
     }
 
-    await notifyTeam(data.id);
+    // Email the team after responding, so the form isn't held up by it.
+    // The enquiry is already saved, so a failed email loses nothing.
+    const enquiryId = data.id as string;
+    after(() => notifyTeam(enquiryId, enquiry));
 
     return apiOk({ id: data.id, name: enquiry.name });
   } catch (err) {
@@ -60,10 +63,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function notifyTeam(enquiryId: string) {
-  // TODO(email): no email provider is configured in this project yet.
-  // Once one is chosen, send a notification to NOTIFY_EMAIL here with the
-  // enquiry details, reading any API key from an environment variable.
-  // Until then the enquiry is only stored in the `enquiries` table.
-  console.info(`[contact] new enquiry ${enquiryId}; email notification to ${NOTIFY_EMAIL} not sent (no provider configured)`);
+async function notifyTeam(enquiryId: string, enquiry: EnquiryInput) {
+  const result = await sendEmail(buildEnquiryEmail(enquiry, enquiryId));
+  if (result.sent) {
+    console.info(`[contact] enquiry ${enquiryId} notification sent (${result.id})`);
+  } else {
+    console.error(`[contact] enquiry ${enquiryId} notification NOT sent: ${result.reason}`);
+  }
 }
