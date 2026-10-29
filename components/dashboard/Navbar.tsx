@@ -6,7 +6,6 @@ import { Zap } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard" },
-  { href: "/clients", label: "Clients" },
   { href: "/settings", label: "Settings" },
 ];
 

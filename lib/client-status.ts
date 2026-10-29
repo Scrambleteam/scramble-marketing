@@ -5,7 +5,7 @@ import { SERVICE_META, ServiceKey, TierKey, servicesForTier } from "./tiers";
 
 /** scramble_users columns the admin hub and workspace need */
 export const ADMIN_CLIENT_COLUMNS =
-  "id, email, company_name, tier, services, created_at, website_domain, site_url, analytics_property_id, ads_customer_id, meta_connected, subscription_status, current_period_end";
+  "id, email, company_name, tier, services, created_at, website_domain, site_url, analytics_property_id, ads_customer_id, meta_connected, subscription_status, current_period_end, client_workspace(brief_updated_at)";
 
 export interface AdminClient {
   id: string;
@@ -21,6 +21,13 @@ export interface AdminClient {
   meta_connected: boolean | null;
   subscription_status: string | null;
   current_period_end: string | null;
+  /** Joined from client_workspace (one-to-one; may come back as an object or a one-item array) */
+  client_workspace?: { brief_updated_at: string | null } | { brief_updated_at: string | null }[] | null;
+}
+
+export function hasBrief(c: AdminClient) {
+  const w = Array.isArray(c.client_workspace) ? c.client_workspace[0] : c.client_workspace;
+  return !!w?.brief_updated_at;
 }
 
 export interface PropertyOption {
@@ -140,6 +147,9 @@ export function nextAction(c: AdminClient, lights: ServiceLight[]): NextAction {
   const unassigned = lights.filter((l) => l.state === "not_assigned").map((l) => l.label);
   if (unassigned.length) {
     return { text: `Assign ${list(unassigned)}`, attention: true };
+  }
+  if (!hasBrief(c)) {
+    return { text: "Write the business brief", attention: true };
   }
   if (lights.some((l) => l.state === "waiting")) {
     return { text: "Waiting for the client to connect Meta", attention: false };

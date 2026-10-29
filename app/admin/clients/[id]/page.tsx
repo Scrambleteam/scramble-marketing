@@ -20,8 +20,12 @@ import ClientPropertyEditor, { PROPERTY_EDITOR_STYLES } from "@/components/admin
 import { AGENCY_PANEL_STYLES } from "@/components/admin/AgencyGooglePanel";
 import { useAgencyGoogle } from "@/components/admin/useAgencyGoogle";
 import ServiceMetricsCard, { ServiceData, SERVICE_CARD_STYLES } from "@/components/dashboard/ServiceMetricsCard";
+import WorkspaceSectionForm, { SectionState, WORKSPACE_FORM_STYLES } from "@/components/admin/WorkspaceSectionForm";
+import ActivityTimeline, { ACTIVITY_STYLES } from "@/components/admin/ActivityTimeline";
+import { TEAM_PICKER_STYLES, useTeamMember } from "@/components/admin/TeamMemberPicker";
+import { SectionKey, sectionIsEmpty } from "@/lib/workspace";
 
-type Tab = "overview" | "connections";
+type Tab = "overview" | "connections" | "brief" | "strategy" | "activity";
 type Metrics = Partial<Record<"search_console" | "analytics" | "ads", ServiceData>>;
 
 export default function ClientWorkspacePage() {
@@ -40,6 +44,21 @@ function ClientWorkspace() {
   const [tab, setTab] = useState<Tab>("overview");
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [metricsKey, setMetricsKey] = useState(0);
+  const [sections, setSections] = useState<Record<SectionKey, SectionState> | null>(null);
+  const [sectionsError, setSectionsError] = useState(false);
+  const team = useTeamMember();
+
+  useEffect(() => {
+    authFetch(`/api/admin/clients/${id}/workspace`)
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d) =>
+        setSections({
+          brief: { values: d.brief ?? {}, updatedAt: d.brief_updated_at, updatedBy: d.brief_updated_by },
+          strategy: { values: d.strategy ?? {}, updatedAt: d.strategy_updated_at, updatedBy: d.strategy_updated_by },
+        })
+      )
+      .catch(() => setSectionsError(true));
+  }, [id]);
 
   useEffect(() => {
     authFetch(`/api/admin/clients/${id}`)
@@ -78,6 +97,9 @@ function ClientWorkspace() {
       <style>{SERVICE_CARD_STYLES}</style>
       <style>{AGENCY_PANEL_STYLES}</style>
       <style>{PROPERTY_EDITOR_STYLES}</style>
+      <style>{WORKSPACE_FORM_STYLES}</style>
+      <style>{ACTIVITY_STYLES}</style>
+      <style>{TEAM_PICKER_STYLES}</style>
       <style>{wsStyles}</style>
 
       <Link href="/admin" className="sc-link ws-back">← All clients</Link>
@@ -110,6 +132,9 @@ function ClientWorkspace() {
           [
             ["overview", "Overview"],
             ["connections", "Connections"],
+            ["brief", "Brief"],
+            ["strategy", "Strategy"],
+            ["activity", "Activity"],
           ] as [Tab, string][]
         ).map(([key, label]) => (
           <button key={key} role="tab" aria-selected={tab === key} className={`ws-tab ${tab === key ? "on" : ""}`} onClick={() => setTab(key)}>
@@ -118,7 +143,45 @@ function ClientWorkspace() {
         ))}
       </div>
 
-      {tab === "overview" ? (
+      {tab === "brief" || tab === "strategy" ? (
+        <div className="ws-section">
+          {sectionsError ? (
+            <div className="sc-error">Couldn&apos;t load the {tab}. Refresh to try again.</div>
+          ) : !sections ? (
+            <p className="ws-help">Loading…</p>
+          ) : (
+            <div className="ws-panel">
+              <p className="ws-help">
+                {tab === "brief"
+                  ? "What the business does and wants, captured after the first call. Everything else builds on this."
+                  : "The working plan for this client: what we're doing, why, and what's next."}
+                {sections[tab].updatedAt ? (
+                  <> Last saved {new Date(sections[tab].updatedAt!).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                  {sections[tab].updatedBy && <> by {sections[tab].updatedBy}</>}.</>
+                ) : sectionIsEmpty(tab, sections[tab].values) ? " Not written yet." : null}
+              </p>
+              <WorkspaceSectionForm
+                key={tab}
+                clientId={client.id}
+                section={tab}
+                initial={sections[tab]}
+                member={team.member}
+                onMemberChange={team.setMember}
+                onSaved={(next) => {
+                  setSections((s) => (s ? { ...s, [tab]: next } : s));
+                  if (tab === "brief") {
+                    setClient((c) => (c ? { ...c, client_workspace: { brief_updated_at: next.updatedAt } } : c));
+                  }
+                }}
+              />
+            </div>
+          )}
+        </div>
+      ) : tab === "activity" ? (
+        <div className="ws-section">
+          <ActivityTimeline clientId={client.id} member={team.member} onMemberChange={team.setMember} />
+        </div>
+      ) : tab === "overview" ? (
         <div className="ws-section">
           <p className="ws-help">This is what {client.company_name} sees on their dashboard right now.</p>
           <div className="ws-cards">
@@ -243,10 +306,10 @@ const wsStyles = `
   }
   .ws-action.attention { color: #a86a0c; background: rgba(244, 185, 66, 0.12); border-color: rgba(244, 185, 66, 0.35); }
 
-  .ws-tabs { display: flex; gap: 6px; border-bottom: 1px solid rgba(122, 178, 255, 0.2); margin-bottom: 24px; }
+  .ws-tabs { display: flex; gap: 6px; border-bottom: 1px solid rgba(122, 178, 255, 0.2); margin-bottom: 24px; overflow-x: auto; }
   .ws-tab {
     padding: 10px 16px; border: none; background: none; cursor: pointer; font-family: inherit;
-    font-size: 15px; font-weight: 600; color: #8a97ab; border-bottom: 2px solid transparent; margin-bottom: -1px;
+    font-size: 15px; font-weight: 600; color: #8a97ab; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap;
   }
   .ws-tab.on { color: #2d7fe0; border-bottom-color: #2d7fe0; }
 
