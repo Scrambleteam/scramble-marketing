@@ -96,6 +96,25 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       console.error("[admin client PATCH]", error);
       return NextResponse.json({ error: "Failed to save" }, { status: 500 });
     }
+
+    // Record what changed in the client's activity timeline
+    const labels: Record<string, string> = {
+      site_url: "Search Console",
+      analytics_property_id: "GA4",
+      ads_customer_id: "Google Ads",
+    };
+    const changes = Object.entries(updates)
+      .filter(([k, v]) => (current as Record<string, string | null>)[k] !== v)
+      .map(([k, v]) => (v ? `${labels[k]} set to ${v}` : `${labels[k]} cleared`));
+    if (changes.length) {
+      await supabase.from("client_notes").insert({
+        scramble_user_id: id,
+        type: "system",
+        content: `Google accounts: ${changes.join("; ")}`,
+        author: "Scramble",
+      });
+    }
+
     return NextResponse.json({ ok: true, client: data });
   } catch (err) {
     console.error("[admin client PATCH]", err);
