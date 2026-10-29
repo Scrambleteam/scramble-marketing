@@ -1,6 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase";
 import { getAdminUser, unauthorizedResponse } from "@/lib/api-auth";
+import { ADMIN_CLIENT_COLUMNS } from "@/lib/client-status";
+
+/**
+ * GET /api/admin/clients/[id]
+ *
+ * Admin only. One client's profile for the client workspace.
+ */
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const admin = await getAdminUser(request);
+  if (!admin) return unauthorizedResponse("Admin access required");
+
+  const { id } = await params;
+  const supabase = createAdminSupabaseClient();
+  const { data, error } = await supabase.from("scramble_users").select(ADMIN_CLIENT_COLUMNS).eq("id", id).single();
+  if (error || !data) {
+    return NextResponse.json({ error: "Client not found" }, { status: 404 });
+  }
+  return NextResponse.json({ client: data });
+}
 
 /**
  * PATCH /api/admin/clients/[id]

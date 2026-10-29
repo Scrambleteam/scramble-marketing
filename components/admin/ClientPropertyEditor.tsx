@@ -3,19 +3,7 @@
 import { useState } from "react";
 import { authFetch } from "@/lib/api-client";
 import { ServiceKey } from "@/lib/tiers";
-
-export interface PropertyOption {
-  id: string;
-  label: string;
-}
-
-export type Listing = { options: PropertyOption[] } | { error: string } | undefined;
-
-export interface AgencyAccounts {
-  searchConsole: Listing;
-  analytics: Listing;
-  ads: Listing;
-}
+import { AgencyAccounts } from "@/lib/client-status";
 
 export interface Assignments {
   site_url: string | null;

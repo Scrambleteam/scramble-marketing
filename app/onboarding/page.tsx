@@ -8,22 +8,8 @@ import { authFetch, authFetchOrThrow } from "@/lib/api-client";
 import { SCRAMBLE_THEME } from "@/lib/scramble-theme";
 import { servicesForTier, TierKey, ServiceKey } from "@/lib/tiers";
 import { AGENCY_GOOGLE_EMAIL } from "@/lib/admin";
+import { GOOGLE_ACCESS_STEPS } from "@/lib/agency-access";
 
-// How a client gives the agency Google account access, per service.
-const GOOGLE_ACCESS_STEPS: Partial<Record<ServiceKey, { title: string; steps: string }>> = {
-  search_console: {
-    title: "Search Console",
-    steps: "Settings → Users and permissions → Add user. Paste our email and choose “Full”.",
-  },
-  analytics: {
-    title: "Google Analytics (GA4)",
-    steps: "Admin → Property access management → + → Add users. Paste our email and choose “Viewer”.",
-  },
-  ads: {
-    title: "Google Ads",
-    steps: "Admin → Access and security → + → paste our email and choose “Standard”. If we've sent you a link request from our manager account, you can accept that instead.",
-  },
-};
 
 function OnboardingInner() {
   const router = useRouter();
