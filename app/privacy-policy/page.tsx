@@ -61,15 +61,16 @@ export default function PrivacyPolicyPage() {
                 <li><strong>Name</strong> — to personalise your account and communications</li>
                 <li><strong>Email address</strong> — for authentication, notifications, and reports</li>
                 <li><strong>Company name</strong> — to identify your organisation within the dashboard</li>
-                <li><strong>Website URL</strong> — to connect and pull marketing data for your properties</li>
+                <li><strong>Website URL</strong> — to identify your website and match it to your Google properties</li>
               </ul>
 
               <h3>2.2 Authentication Data</h3>
               <ul>
                 <li>
-                  <strong>Google OAuth tokens</strong> — encrypted access and refresh tokens used to
-                  securely connect your Google Search Console, Google Analytics, and Google Ads
-                  accounts on your behalf
+                  <strong>Google access tokens</strong> — access and refresh tokens for the Scramble
+                  team&rsquo;s Google account, which is added as a user on your Google Search Console,
+                  Google Analytics and Google Ads accounts. You don&rsquo;t need to connect or sign in to
+                  Google yourself.
                 </li>
                 <li>
                   <strong>Session tokens</strong> — to maintain your authenticated session
@@ -80,7 +81,7 @@ export default function PrivacyPolicyPage() {
               <ul>
                 <li>
                   <strong>Search Console data</strong> — keyword rankings, impressions, clicks, and
-                  average positions for your connected properties
+                  average positions for your properties
                 </li>
                 <li>
                   <strong>Google Analytics data</strong> — traffic, sessions, conversions, and
