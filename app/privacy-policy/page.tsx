@@ -205,6 +205,28 @@ export default function PrivacyPolicyPage() {
                   </a>
                 </li>
                 <li>
+                  <strong>Stripe</strong> — payment processing and subscription billing. Stripe privacy
+                  policy:{" "}
+                  <a
+                    href="https://stripe.com/gb/privacy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    stripe.com/gb/privacy
+                  </a>
+                </li>
+                <li>
+                  <strong>Resend</strong> — sending our email notifications, such as new enquiries. Resend
+                  privacy policy:{" "}
+                  <a
+                    href="https://resend.com/legal/privacy-policy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    resend.com/legal/privacy-policy
+                  </a>
+                </li>
+                <li>
                   <strong>Vercel</strong> — website hosting and deployment. Vercel privacy policy:{" "}
                   <a
                     href="https://vercel.com/legal/privacy-policy"
@@ -240,21 +262,23 @@ export default function PrivacyPolicyPage() {
               </p>
               <p>
                 <strong>Who can see it.</strong> Only authorised Scramble team members can access
-                client dashboards.{" "}
-                <span className="legal-confirm">[Confirm: name any third-party service that processes this data, such as the helper described in our technical notes, and what it does with the data.]</span>
+                client dashboards. We don&rsquo;t share Google user data with any third party. It is
+                stored by our database provider, Supabase, and served by our hosting provider, Vercel,
+                as described in section 6.
               </p>
               <p>
                 <strong>Storage and security.</strong> Connection tokens and data are stored in our
-                database, Supabase.{" "}
-                <span className="legal-confirm">[Confirm: state whether data is encrypted at rest and in transit, and any retention period.]</span>
+                database, Supabase. Data is encrypted in transit and at rest, and access is limited to our
+                servers and authorised team members.
               </p>
               <p>
                 <strong>Your control.</strong> Clients can ask our team to revoke our access to their
                 Google accounts at any time by contacting{" "}
                 <a href="mailto:helloscrambleteam@gmail.com">helloscrambleteam@gmail.com</a>. They can
                 also remove Scramble&rsquo;s access themselves at any time within their Google account
-                settings. Once access is revoked, we stop reading their data.{" "}
-                <span className="legal-confirm">[Confirm: state what happens to stored data after disconnection, and how long it&rsquo;s kept.]</span>
+                settings. Once access is revoked, we stop reading their data. We keep Google user data
+                only while you are an active client. When access is revoked or you leave, we delete this
+                data within 30 days. We keep billing records for six years to meet UK tax requirements.
               </p>
               <p>
                 <strong>Limited Use.</strong> Our use of information received from Google APIs adheres
