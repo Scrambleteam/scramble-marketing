@@ -39,7 +39,7 @@ export default function TermsOfServicePage() {
               <p>
                 These Terms of Service (&ldquo;Terms&rdquo;) govern your access to and use of the
                 Scramble Marketing website, dashboard, and related services (the &ldquo;Service&rdquo;),
-                provided by Scramble Marketing Hub (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;).
+                provided by Scramble Group Ltd (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;).
               </p>
               <p>
                 By creating an account or using the Service, you agree to be bound by these Terms.
@@ -165,7 +165,7 @@ export default function TermsOfServicePage() {
             <section>
               <h2>10. Limitation of Liability</h2>
               <p>
-                To the fullest extent permitted by law, Scramble Marketing Hub shall not be liable
+                To the fullest extent permitted by law, Scramble Group Ltd shall not be liable
                 for any indirect, incidental, or consequential loss, including loss of profits,
                 revenue, or advertising spend, arising from your use of the Service. Nothing in
                 these Terms excludes or limits liability that cannot lawfully be excluded, such as
@@ -195,7 +195,7 @@ export default function TermsOfServicePage() {
               <h2>13. Contact Us</h2>
               <p>If you have any questions about these Terms, please contact us:</p>
               <p>
-                <strong>Scramble Marketing Hub</strong><br />
+                <strong>Scramble Group Ltd</strong><br />
                 Email:{" "}
                 <a href="mailto:helloscrambleteam@gmail.com">helloscrambleteam@gmail.com</a>
               </p>
@@ -212,7 +212,7 @@ export default function TermsOfServicePage() {
             <span>·</span>
             <Link href="/terms">Terms of Service</Link>
           </div>
-          <p>© 2026 Scramble Marketing Hub. All rights reserved.</p>
+          <p>© 2026 Scramble Group Ltd. All rights reserved.</p>
         </footer>
       </div>
     </div>
