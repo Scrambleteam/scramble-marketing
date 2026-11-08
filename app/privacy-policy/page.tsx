@@ -31,7 +31,7 @@ export default function PrivacyPolicyPage() {
         <div className="legal-card">
           <div className="legal-badge">Legal</div>
           <h1 className="legal-title">Privacy Policy</h1>
-          <p className="legal-updated">Last updated: 7 September 2026</p>
+          <p className="legal-updated">Last updated: 8 November 2026</p>
 
           <div className="legal-body">
             <section>
@@ -220,7 +220,47 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section>
-              <h2>7. Your Rights Under UK GDPR</h2>
+              <h2>7. Google User Data</h2>
+              <p>
+                Scramble connects to Google services, including Google Ads, Google Analytics (GA4) and
+                Google Search Console, on behalf of our clients. We only access data that a client has
+                chosen to share with us by linking their account.
+              </p>
+              <p>
+                <strong>What we access.</strong> For Google Ads, we read campaign names and IDs, and
+                performance metrics such as impressions, clicks, cost and conversions. For Search
+                Console, we read search performance data for the properties the client selects. For
+                Google Analytics, we read report data for the properties the client selects.
+              </p>
+              <p>
+                <strong>How we use it.</strong> We use this data only to show the client their
+                performance in their Scramble dashboard, and to prepare reports for them. We
+                don&rsquo;t use Google user data for advertising, and we don&rsquo;t sell it.
+              </p>
+              <p>
+                <strong>Who can see it.</strong> Only authorised Scramble team members can access
+                client dashboards.{" "}
+                <span className="legal-confirm">[Confirm: name any third-party service that processes this data, such as the helper described in our technical notes, and what it does with the data.]</span>
+              </p>
+              <p>
+                <strong>Storage and security.</strong> Connection tokens and data are stored in our
+                database, Supabase.{" "}
+                <span className="legal-confirm">[Confirm: state whether data is encrypted at rest and in transit, and any retention period.]</span>
+              </p>
+              <p>
+                <strong>Your control.</strong> Clients can disconnect a Google account from their
+                dashboard at any time, or remove Scramble&rsquo;s access from their Google account
+                settings. When they disconnect, we stop reading their data.{" "}
+                <span className="legal-confirm">[Confirm: state what happens to stored data after disconnection, and how long it&rsquo;s kept.]</span>
+              </p>
+              <p>
+                <strong>Limited Use.</strong> Our use of information received from Google APIs adheres
+                to the Google API Services User Data Policy, including the Limited Use requirements.
+              </p>
+            </section>
+
+            <section>
+              <h2>8. Your Rights Under UK GDPR</h2>
               <p>You have the following rights regarding your personal data:</p>
               <ul>
                 <li>
@@ -255,7 +295,7 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section>
-              <h2>8. How to Exercise Your Rights</h2>
+              <h2>9. How to Exercise Your Rights</h2>
               <p>
                 To exercise any of your rights, please contact us at:{" "}
                 <a href="mailto:helloscrambleteam@gmail.com">helloscrambleteam@gmail.com</a>
@@ -280,7 +320,7 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section>
-              <h2>9. Cookies</h2>
+              <h2>10. Cookies</h2>
               <p>
                 We use cookies and similar technologies on our website. For full details on what
                 cookies we use, why, and how to manage them, please see our{" "}
@@ -289,7 +329,7 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section>
-              <h2>10. International Data Transfers</h2>
+              <h2>11. International Data Transfers</h2>
               <p>
                 Some of our third-party service providers may process data outside the UK. Where
                 this occurs, we ensure appropriate safeguards are in place, including Standard
@@ -299,7 +339,7 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section>
-              <h2>11. Children&rsquo;s Privacy</h2>
+              <h2>12. Children&rsquo;s Privacy</h2>
               <p>
                 Our services are not directed at individuals under the age of 18. We do not
                 knowingly collect personal data from children. If you believe a child has provided
@@ -308,7 +348,7 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section>
-              <h2>12. Changes to This Policy</h2>
+              <h2>13. Changes to This Policy</h2>
               <p>
                 We may update this Privacy Policy from time to time. Any changes will be posted on
                 this page with an updated &ldquo;Last updated&rdquo; date. We encourage you to review this
@@ -317,7 +357,7 @@ export default function PrivacyPolicyPage() {
             </section>
 
             <section>
-              <h2>13. Contact Us</h2>
+              <h2>14. Contact Us</h2>
               <p>
                 If you have any questions about this Privacy Policy or our data practices, please
                 contact us:
@@ -464,6 +504,11 @@ const legalPageStyles = `
   .legal-body strong {
     color: #16243a;
     font-weight: 700;
+  }
+
+  .legal-confirm {
+    display: inline-block; background: #fff4cc; border: 1px solid #f4b942; color: #7a4a00;
+    border-radius: 8px; padding: 2px 8px; font-size: 14px; font-weight: 600; line-height: 1.5;
   }
 
   .legal-footer {
