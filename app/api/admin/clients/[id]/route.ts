@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/supabase";
 import { getAdminUser, unauthorizedResponse } from "@/lib/api-auth";
 import { ADMIN_CLIENT_COLUMNS } from "@/lib/client-status";
+import { OVERDUE_STATUSES, paymentMissedSince } from "@/lib/billing-overdue";
 
 /**
  * GET /api/admin/clients/[id]
@@ -14,11 +15,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const { id } = await params;
   const supabase = createAdminSupabaseClient();
-  const { data, error } = await supabase.from("scramble_users").select(ADMIN_CLIENT_COLUMNS).eq("id", id).single();
+  const { data, error } = await supabase
+    .from("scramble_users")
+    .select(`${ADMIN_CLIENT_COLUMNS}, stripe_customer_id`)
+    .eq("id", id)
+    .single();
   if (error || !data) {
     return NextResponse.json({ error: "Client not found" }, { status: 404 });
   }
-  return NextResponse.json({ client: data });
+  const { stripe_customer_id, ...client } = data;
+  const payment_failed_since = OVERDUE_STATUSES.includes(client.subscription_status || "")
+    ? await paymentMissedSince(stripe_customer_id)
+    : null;
+  return NextResponse.json({ client: { ...client, payment_failed_since } });
 }
 
 /**
