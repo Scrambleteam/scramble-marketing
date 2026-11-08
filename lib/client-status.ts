@@ -21,6 +21,8 @@ export interface AdminClient {
   meta_connected: boolean | null;
   subscription_status: string | null;
   current_period_end: string | null;
+  /** When the first missed payment happened (server-filled, overdue clients only) */
+  payment_failed_since?: string | null;
   /** Joined from client_workspace (one-to-one; may come back as an object or a one-item array) */
   client_workspace?: { brief_updated_at: string | null } | { brief_updated_at: string | null }[] | null;
 }
@@ -136,9 +138,20 @@ function list(names: string[]) {
   return names.length <= 1 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
+/** Whole days since the first missed payment, or null if not overdue / unknown */
+export function daysOverdue(c: Pick<AdminClient, "subscription_status" | "payment_failed_since">, now = Date.now()): number | null {
+  if (!c.subscription_status || !["past_due", "unpaid"].includes(c.subscription_status)) return null;
+  if (!c.payment_failed_since) return null;
+  return Math.floor((now - new Date(c.payment_failed_since).getTime()) / 86_400_000);
+}
+
 export function nextAction(c: AdminClient, lights: ServiceLight[]): NextAction {
   if (c.subscription_status === "past_due" || c.subscription_status === "unpaid") {
-    return { text: "Payment failed — check Stripe", attention: true };
+    const days = daysOverdue(c);
+    if (days === null) return { text: "Payment missed — date unknown, check Stripe", attention: true };
+    if (days >= 30) return { text: `Payment missed ${days} days ago — remove their data now`, attention: true };
+    const when = days === 0 ? "today" : `${days} day${days === 1 ? "" : "s"} ago`;
+    return { text: `Payment missed ${when} — remove data at 30 days`, attention: true };
   }
   const broken = lights.filter((l) => l.state === "broken").map((l) => l.label);
   if (broken.length) {

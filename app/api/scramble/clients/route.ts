@@ -3,6 +3,7 @@ import { createAdminSupabaseClient } from "@/lib/supabase";
 import { getAuthenticatedUser, unauthorizedResponse, forbiddenResponse } from "@/lib/api-auth";
 import { isAdminEmail } from "@/lib/admin";
 import { ADMIN_CLIENT_COLUMNS } from "@/lib/client-status";
+import { OVERDUE_STATUSES, paymentMissedSince } from "@/lib/billing-overdue";
 
 /**
  * GET /api/scramble/clients
@@ -19,7 +20,7 @@ export async function GET(_request: NextRequest) {
     const supabase = createAdminSupabaseClient();
     const { data, error } = await supabase
       .from("scramble_users")
-      .select(ADMIN_CLIENT_COLUMNS)
+      .select(`${ADMIN_CLIENT_COLUMNS}, stripe_customer_id`)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -27,7 +28,15 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json({ error: error.message, clients: [] }, { status: 500 });
     }
 
-    return NextResponse.json({ clients: data || [] });
+    const clients = await Promise.all(
+      (data || []).map(async ({ stripe_customer_id, ...client }) => ({
+        ...client,
+        payment_failed_since: OVERDUE_STATUSES.includes(client.subscription_status || "")
+          ? await paymentMissedSince(stripe_customer_id)
+          : null,
+      }))
+    );
+    return NextResponse.json({ clients });
   } catch (err) {
     console.error("[scramble clients]", err);
     return NextResponse.json({ error: "Internal error", clients: [] }, { status: 500 });
