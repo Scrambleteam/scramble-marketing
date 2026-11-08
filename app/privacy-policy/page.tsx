@@ -248,9 +248,11 @@ export default function PrivacyPolicyPage() {
                 <span className="legal-confirm">[Confirm: state whether data is encrypted at rest and in transit, and any retention period.]</span>
               </p>
               <p>
-                <strong>Your control.</strong> Clients can disconnect a Google account from their
-                dashboard at any time, or remove Scramble&rsquo;s access from their Google account
-                settings. When they disconnect, we stop reading their data.{" "}
+                <strong>Your control.</strong> Clients can ask our team to revoke our access to their
+                Google accounts at any time by contacting{" "}
+                <a href="mailto:helloscrambleteam@gmail.com">helloscrambleteam@gmail.com</a>. They can
+                also remove Scramble&rsquo;s access themselves at any time within their Google account
+                settings. Once access is revoked, we stop reading their data.{" "}
                 <span className="legal-confirm">[Confirm: state what happens to stored data after disconnection, and how long it&rsquo;s kept.]</span>
               </p>
               <p>
