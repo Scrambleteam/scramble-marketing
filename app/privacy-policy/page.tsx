@@ -37,7 +37,7 @@ export default function PrivacyPolicyPage() {
             <section>
               <h2>1. Introduction</h2>
               <p>
-                Scramble Marketing (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;), operated by Scramble Marketing Hub, is
+                Scramble Group Ltd (&ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;) is
                 committed to protecting your personal data in accordance with the UK General Data
                 Protection Regulation (UK GDPR) and the Data Protection Act 2018.
               </p>
@@ -46,7 +46,7 @@ export default function PrivacyPolicyPage() {
                 information when you use our website, dashboard, and marketing services.
               </p>
               <p>
-                <strong>Data Controller:</strong> Scramble Marketing Hub<br />
+                <strong>Data Controller:</strong> Scramble Group Ltd<br />
                 <strong>Contact Email:</strong>{" "}
                 <a href="mailto:helloscrambleteam@gmail.com">helloscrambleteam@gmail.com</a>
               </p>
@@ -390,7 +390,7 @@ export default function PrivacyPolicyPage() {
                 contact us:
               </p>
               <p>
-                <strong>Scramble Marketing Hub</strong><br />
+                <strong>Scramble Group Ltd</strong><br />
                 Email:{" "}
                 <a href="mailto:helloscrambleteam@gmail.com">helloscrambleteam@gmail.com</a>
               </p>
@@ -407,7 +407,7 @@ export default function PrivacyPolicyPage() {
             <span>·</span>
             <Link href="/terms">Terms of Service</Link>
           </div>
-          <p>© 2026 Scramble Marketing Hub. All rights reserved.</p>
+          <p>© 2026 Scramble Group Ltd. All rights reserved.</p>
         </footer>
       </div>
     </div>
