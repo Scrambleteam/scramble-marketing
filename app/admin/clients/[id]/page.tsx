@@ -22,10 +22,11 @@ import { useAgencyGoogle } from "@/components/admin/useAgencyGoogle";
 import ServiceMetricsCard, { ServiceData, SERVICE_CARD_STYLES } from "@/components/dashboard/ServiceMetricsCard";
 import WorkspaceSectionForm, { SectionState, WORKSPACE_FORM_STYLES } from "@/components/admin/WorkspaceSectionForm";
 import ActivityTimeline, { ACTIVITY_STYLES } from "@/components/admin/ActivityTimeline";
+import ChangeLog, { CHANGE_LOG_STYLES } from "@/components/admin/ChangeLog";
 import { TEAM_PICKER_STYLES, useTeamMember } from "@/components/admin/TeamMemberPicker";
 import { SectionKey, sectionIsEmpty } from "@/lib/workspace";
 
-type Tab = "overview" | "connections" | "brief" | "strategy" | "activity";
+type Tab = "overview" | "connections" | "brief" | "strategy" | "changes" | "activity";
 type Metrics = Partial<Record<"search_console" | "analytics" | "ads", ServiceData>>;
 
 export default function ClientWorkspacePage() {
@@ -99,6 +100,7 @@ function ClientWorkspace() {
       <style>{PROPERTY_EDITOR_STYLES}</style>
       <style>{WORKSPACE_FORM_STYLES}</style>
       <style>{ACTIVITY_STYLES}</style>
+      <style>{CHANGE_LOG_STYLES}</style>
       <style>{TEAM_PICKER_STYLES}</style>
       <style>{wsStyles}</style>
 
@@ -134,6 +136,7 @@ function ClientWorkspace() {
             ["connections", "Connections"],
             ["brief", "Brief"],
             ["strategy", "Strategy"],
+            ["changes", "Changes"],
             ["activity", "Activity"],
           ] as [Tab, string][]
         ).map(([key, label]) => (
@@ -176,6 +179,10 @@ function ClientWorkspace() {
               />
             </div>
           )}
+        </div>
+      ) : tab === "changes" ? (
+        <div className="ws-section">
+          <ChangeLog clientId={client.id} member={team.member} onMemberChange={team.setMember} />
         </div>
       ) : tab === "activity" ? (
         <div className="ws-section">
