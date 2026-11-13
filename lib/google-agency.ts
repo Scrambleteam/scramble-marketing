@@ -8,6 +8,7 @@
  */
 
 import { createAdminSupabaseClient } from "./supabase";
+import type { PageEngagement, QueryRow } from "./seo-analysis";
 
 export const AGENCY_GOOGLE_SCOPES = [
   "openid",
@@ -336,4 +337,52 @@ export async function adsMetrics(customerId: string): Promise<{ period: Period; 
       { label: "ROAS", current: cur.roas, previous: prev.roas, format: "multiplier" },
     ],
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Raw rows for the SEO worker (read-only)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** The last 28 days and the 28 days before, ending `lagDays` ago */
+export function reportingPeriods(lagDays: number) {
+  return periods(lagDays);
+}
+
+/** Search Console performance by query for one period (top 1,000 by clicks) */
+export async function searchConsoleQueryRows(siteUrl: string, period: Period): Promise<QueryRow[]> {
+  const data = await googleJson<{
+    rows?: { keys: string[]; clicks: number; impressions: number; ctr: number; position: number }[];
+  }>(`https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(siteUrl)}/searchAnalytics/query`, {
+    method: "POST",
+    body: JSON.stringify({ startDate: period.start, endDate: period.end, dimensions: ["query"], rowLimit: 1000 }),
+  });
+  return (data.rows || []).map((r) => ({
+    query: r.keys[0],
+    clicks: r.clicks,
+    impressions: r.impressions,
+    ctr: r.ctr,
+    position: r.position,
+  }));
+}
+
+/** GA4 engagement by landing page for one period (top 100 by sessions) */
+export async function analyticsLandingPages(propertyId: string, period: Period): Promise<PageEngagement[]> {
+  if (!/^\d+$/.test(propertyId)) throw new AgencyGoogleError("api_error", "Invalid GA4 property ID");
+  const data = await googleJson<{
+    rows?: { dimensionValues: { value: string }[]; metricValues: { value: string }[] }[];
+  }>(`https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`, {
+    method: "POST",
+    body: JSON.stringify({
+      dateRanges: [{ startDate: period.start, endDate: period.end }],
+      dimensions: [{ name: "landingPage" }],
+      metrics: [{ name: "sessions" }, { name: "engagementRate" }],
+      orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
+      limit: 100,
+    }),
+  });
+  return (data.rows || []).map((r) => ({
+    page: r.dimensionValues[0].value,
+    sessions: Number(r.metricValues[0].value),
+    engagementRate: Number(r.metricValues[1].value),
+  }));
 }
