@@ -9,7 +9,7 @@ export interface AgencyStatus {
   email: string | null;
   connectedBy: string | null;
   updatedAt: string | null;
-  ads: { developerToken: boolean; managerAccount: boolean };
+  ads: { provider?: "google" | "maton"; developerToken: boolean; managerAccount: boolean };
 }
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -110,7 +110,12 @@ export default function AgencyGooglePanel({
         </div>
       </div>
 
-      {status && (!status.ads.developerToken || !status.ads.managerAccount) && (
+      {status?.ads.provider === "maton" && (
+        <p className="agency-panel-note">
+          Google Ads is being read through Maton, a third-party service. Search Console and Analytics are read directly from Google.
+        </p>
+      )}
+      {status && status.ads.provider !== "maton" && (!status.ads.developerToken || !status.ads.managerAccount) && (
         <p className="agency-panel-note">
           Google Ads:{" "}
           {!status.ads.developerToken
