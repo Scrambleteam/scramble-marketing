@@ -56,6 +56,16 @@ export function isPayingClient(c: Pick<AdminClient, "subscription_status">) {
   return CLIENT_STATUSES.includes(c.subscription_status || "");
 }
 
+// TESTING SWITCH. While true, the admin hub gives every signed-up client a
+// card and workspace, paid or not. Set it back to false to return to paying
+// clients only (everyone else is then listed under "Signed up, not paid").
+export const SHOW_UNPAID_CLIENTS = true;
+
+/** Whether a client gets a card in the admin hub */
+export function showInHub(c: Pick<AdminClient, "subscription_status">) {
+  return SHOW_UNPAID_CLIENTS || isPayingClient(c);
+}
+
 export function billingLabel(status: string | null): { text: string; tone: "good" | "warn" | "bad" | "muted" } {
   switch (status) {
     case "active":
