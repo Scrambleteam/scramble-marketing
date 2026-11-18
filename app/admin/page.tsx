@@ -7,6 +7,8 @@ import {
   AdminClient,
   billingLabel,
   isPayingClient,
+  SHOW_UNPAID_CLIENTS,
+  showInHub,
   nextAction,
   planLabel,
   serviceLights,
@@ -45,7 +47,7 @@ function ClientHub() {
 
   const cards = useMemo(() => {
     return (clients || [])
-      .filter(isPayingClient)
+      .filter(showInHub)
       .map((client) => {
         const lights = serviceLights(client, agency.accounts);
         return { client, lights, action: nextAction(client, lights) };
@@ -58,6 +60,8 @@ function ClientHub() {
   }, [clients, agency.accounts]);
 
   const notPaid = (clients || []).filter((c) => !isPayingClient(c));
+  // While the testing switch is on, unpaid clients already have cards, so the extra list is hidden
+  const unlistedNotPaid = SHOW_UNPAID_CLIENTS ? [] : notPaid;
 
   const q = search.trim().toLowerCase();
   const visible = cards.filter(({ client, action }) => {
@@ -86,7 +90,7 @@ function ClientHub() {
       <AgencyGooglePanel status={agency.status} onChange={agency.reload} />
 
       <div className="hub-stats">
-        <Stat value={cards.length} label="Paying clients" />
+        <Stat value={cards.length} label={SHOW_UNPAID_CLIENTS ? "Clients (testing: includes unpaid)" : "Paying clients"} />
         <Stat value={attentionCount} label="Need attention" tone={attentionCount ? "warn" : undefined} />
         <Stat value={connectedCount} label="Fully connected" tone={connectedCount ? "good" : undefined} />
         <Stat value={notPaid.length} label="Signed up, not paid" />
@@ -152,15 +156,15 @@ function ClientHub() {
         </div>
       )}
 
-      {notPaid.length > 0 && (
+      {unlistedNotPaid.length > 0 && (
         <details className="hub-notpaid">
-          <summary>Signed up, not paid ({notPaid.length})</summary>
+          <summary>Signed up, not paid ({unlistedNotPaid.length})</summary>
           <p className="hub-notpaid-help">
             These people created an account but haven&apos;t completed checkout. They don&apos;t have a dashboard
             until they pay.
           </p>
           <ul>
-            {notPaid.map((c) => (
+            {unlistedNotPaid.map((c) => (
               <li key={c.id}>
                 <div>
                   <strong>{c.company_name}</strong> · {c.email}
