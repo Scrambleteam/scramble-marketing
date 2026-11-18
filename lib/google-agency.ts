@@ -135,7 +135,8 @@ async function googleJson<T>(url: string, init: RequestInit = {}, extraHeaders: 
  */
 export function describeGoogleError(body: unknown, fallback: string): string {
   const err = (body as { error?: { message?: string; status?: string; details?: unknown[] } } | null)?.error;
-  const parts: string[] = [err?.message || fallback];
+  const topLevel = (body as { message?: string } | null)?.message;
+  const parts: string[] = [err?.message || topLevel || fallback];
   const detailErrors: string[] = [];
   for (const d of err?.details ?? []) {
     const errors = (d as { errors?: { errorCode?: Record<string, string>; message?: string }[] }).errors;
@@ -202,12 +203,46 @@ function adsHeaders(): Record<string, string> {
   return headers;
 }
 
+// Google Ads can be reached two ways:
+//  - "google": direct, with our own Google sign-in and developer token (default)
+//  - "maton":  through the Maton gateway (a third-party service), used only
+//              when MATON_API_KEY is set. Maton holds the Google Ads sign-in.
+// Search Console and Analytics always go direct to Google.
+const MATON_ADS_API_VERSION = process.env.MATON_ADS_API_VERSION || "v24";
+
+export function adsProvider(): "maton" | "google" {
+  return process.env.MATON_API_KEY ? "maton" : "google";
+}
+
+async function adsJson<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const key = process.env.MATON_API_KEY;
+  if (!key) {
+    return googleJson<T>(`https://googleads.googleapis.com/${ADS_API_VERSION}${path}`, init, adsHeaders());
+  }
+
+  const headers: Record<string, string> = { Authorization: `Bearer ${key}`, "Content-Type": "application/json" };
+  const loginCustomerId = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID?.replace(/-/g, "");
+  if (loginCustomerId) headers["login-customer-id"] = loginCustomerId;
+  if (process.env.MATON_CONNECTION_ID) headers["Maton-Connection"] = process.env.MATON_CONNECTION_ID;
+
+  const res = await fetch(`https://api.maton.ai/google-ads/${MATON_ADS_API_VERSION}${path}`, {
+    ...init,
+    headers,
+    cache: "no-store",
+    signal: AbortSignal.timeout(20_000),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new AgencyGoogleError("api_error", `Google Ads via Maton ${res.status}: ${describeGoogleError(body, res.statusText)}`);
+  }
+  return res.json() as Promise<T>;
+}
+
 async function adsSearch<T>(customerId: string, query: string): Promise<T[]> {
-  const data = await googleJson<{ results?: T[] }>(
-    `https://googleads.googleapis.com/${ADS_API_VERSION}/customers/${customerId}/googleAds:search`,
-    { method: "POST", body: JSON.stringify({ query }) },
-    adsHeaders()
-  );
+  const data = await adsJson<{ results?: T[] }>(`/customers/${customerId}/googleAds:search`, {
+    method: "POST",
+    body: JSON.stringify({ query }),
+  });
   return data.results || [];
 }
 
@@ -232,11 +267,7 @@ export async function listAdsAccounts(): Promise<PropertyOption[]> {
   }
 
   // Without one: every account the agency user has been added to directly.
-  const data = await googleJson<{ resourceNames?: string[] }>(
-    `https://googleads.googleapis.com/${ADS_API_VERSION}/customers:listAccessibleCustomers`,
-    {},
-    adsHeaders()
-  );
+  const data = await adsJson<{ resourceNames?: string[] }>("/customers:listAccessibleCustomers");
   return (data.resourceNames || []).map((name) => {
     const id = name.replace(/^customers\//, "");
     return { id, label: formatAdsId(id) };

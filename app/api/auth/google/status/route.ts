@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getAdminUser, unauthorizedResponse } from '@/lib/api-auth'
 import { AGENCY_GOOGLE_EMAIL } from '@/lib/admin'
-import { getAgencyConnection } from '@/lib/google-agency'
+import { adsProvider, getAgencyConnection } from '@/lib/google-agency'
 
 /**
  * GET /api/auth/google/status
@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
       updatedAt: connection?.updated_at ?? null,
       scopes: connection?.granted_scopes.split(' ').filter(Boolean) ?? [],
       ads: {
+        provider: adsProvider(),
         developerToken: !!process.env.GOOGLE_ADS_DEVELOPER_TOKEN,
         managerAccount: !!process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID,
       },
