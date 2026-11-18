@@ -31,7 +31,7 @@ export default function PrivacyPolicyPage() {
         <div className="legal-card">
           <div className="legal-badge">Legal</div>
           <h1 className="legal-title">Privacy Policy</h1>
-          <p className="legal-updated">Last updated: 8 November 2026</p>
+          <p className="legal-updated">Last updated: 18 November 2026</p>
 
           <div className="legal-body">
             <section>
@@ -70,7 +70,7 @@ export default function PrivacyPolicyPage() {
                   <strong>Google access tokens</strong> — access and refresh tokens for the Scramble
                   team&rsquo;s Google account, which is added as a user on your Google Search Console,
                   Google Analytics and Google Ads accounts. You don&rsquo;t need to connect or sign in to
-                  Google yourself.
+                  Google yourself. Access to Google Ads is held by Maton on our behalf.
                 </li>
                 <li>
                   <strong>Session tokens</strong> — to maintain your authenticated session
@@ -227,6 +227,17 @@ export default function PrivacyPolicyPage() {
                   </a>
                 </li>
                 <li>
+                  <strong>Maton</strong> — connecting our systems to Google Ads, so we can read your Google
+                  Ads performance data and, where agreed, manage your campaigns. Maton privacy policy:{" "}
+                  <a
+                    href="https://maton.ai/privacy-policy"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    maton.ai/privacy-policy
+                  </a>
+                </li>
+                <li>
                   <strong>Vercel</strong> — website hosting and deployment. Vercel privacy policy:{" "}
                   <a
                     href="https://vercel.com/legal/privacy-policy"
@@ -262,14 +273,18 @@ export default function PrivacyPolicyPage() {
               </p>
               <p>
                 <strong>Who can see it.</strong> Only authorised Scramble team members can access
-                client dashboards. We don&rsquo;t share Google user data with any third party. It is
-                stored by our database provider, Supabase, and served by our hosting provider, Vercel,
-                as described in section 6.
+                client dashboards. We don&rsquo;t sell Google user data or use it for advertising. We use
+                Maton, a service provider, to connect to Google Ads on our behalf, so Maton processes your
+                Google Ads data (such as campaign names and performance figures) to show it to you and to
+                manage your campaigns. Search Console and Analytics data are read directly from Google.
+                Google user data is also stored by our database provider, Supabase, and served by our
+                hosting provider, Vercel, as described in section 6.
               </p>
               <p>
                 <strong>Storage and security.</strong> Connection tokens and data are stored in our
                 database, Supabase. Data is encrypted in transit and at rest, and access is limited to our
-                servers and authorised team members.
+                servers and authorised team members.{" "}
+                <span className="legal-confirm">[Confirm: how long Maton keeps Google Ads data it processes.]</span>
               </p>
               <p>
                 <strong>Your control.</strong> Clients can ask our team to revoke our access to their
@@ -278,7 +293,8 @@ export default function PrivacyPolicyPage() {
                 also remove Scramble&rsquo;s access themselves at any time within their Google account
                 settings. Once access is revoked, we stop reading their data. We keep Google user data
                 only while you are an active client. When access is revoked or you leave, we delete this
-                data within 30 days. We keep billing records for six years to meet UK tax requirements.
+                data within 30 days. We also remove our Google Ads connection from Maton. We keep billing
+                records for six years to meet UK tax requirements.
               </p>
               <p>
                 <strong>Limited Use.</strong> Our use of information received from Google APIs adheres
@@ -361,7 +377,9 @@ export default function PrivacyPolicyPage() {
                 Some of our third-party service providers may process data outside the UK. Where
                 this occurs, we ensure appropriate safeguards are in place, including Standard
                 Contractual Clauses (SCCs) approved by the ICO, or the service provider is
-                established in a country with an adequacy decision.
+                established in a country with an adequacy decision. Some of our service providers, including
+                Maton, process data in the United States.{" "}
+                <span className="legal-confirm">[Confirm: the safeguards that apply to this transfer.]</span>
               </p>
             </section>
 
