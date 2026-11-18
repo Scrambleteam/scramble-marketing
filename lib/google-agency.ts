@@ -22,9 +22,12 @@ export const AGENCY_GOOGLE_SCOPES = [
 /** httpOnly cookie holding the OAuth state between initiate and callback */
 export const OAUTH_STATE_COOKIE = "scramble_google_oauth_state";
 
-// Confirm against https://developers.google.com/google-ads/api/docs/sunset-dates
-// and override with GOOGLE_ADS_API_VERSION when Google retires this version.
-const ADS_API_VERSION = process.env.GOOGLE_ADS_API_VERSION || "v22";
+// Google retires Ads API versions regularly (v22 was blocked with
+// UNSUPPORTED_VERSION). As of 2026-11-18 the available versions are v23 to
+// v26 and Google recommends v26. Check
+// https://developers.google.com/google-ads/api/docs/sunset-dates every few
+// months, and override with GOOGLE_ADS_API_VERSION without a code change.
+const ADS_API_VERSION = process.env.GOOGLE_ADS_API_VERSION || "v26";
 
 export class AgencyGoogleError extends Error {
   constructor(
