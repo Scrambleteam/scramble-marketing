@@ -119,10 +119,30 @@ async function googleJson<T>(url: string, init: RequestInit = {}, extraHeaders: 
   });
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    const message = body?.error?.message || res.statusText;
-    throw new AgencyGoogleError("api_error", `Google API ${res.status}: ${message}`);
+    throw new AgencyGoogleError("api_error", `Google API ${res.status}: ${describeGoogleError(body, res.statusText)}`);
   }
   return res.json() as Promise<T>;
+}
+
+/**
+ * Turns a Google error body into a readable message. The Google Ads API hides
+ * the real reason (for example INVALID_LOGIN_CUSTOMER_ID) inside
+ * error.details[].errors[], so include those instead of only the generic
+ * "Request contains an invalid argument". Never includes tokens or headers.
+ */
+export function describeGoogleError(body: unknown, fallback: string): string {
+  const err = (body as { error?: { message?: string; status?: string; details?: unknown[] } } | null)?.error;
+  const parts: string[] = [err?.message || fallback];
+  const detailErrors: string[] = [];
+  for (const d of err?.details ?? []) {
+    const errors = (d as { errors?: { errorCode?: Record<string, string>; message?: string }[] }).errors;
+    for (const e of errors ?? []) {
+      const code = e.errorCode ? Object.values(e.errorCode)[0] : "";
+      detailErrors.push([code, e.message].filter(Boolean).join(": "));
+    }
+  }
+  if (detailErrors.length) parts.push(`(${detailErrors.slice(0, 3).join("; ")})`);
+  return parts.join(" ");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
