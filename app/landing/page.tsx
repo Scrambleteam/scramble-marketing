@@ -234,6 +234,8 @@ export default function LandingPage() {
             <Link href="/cookie-policy">Cookie Policy</Link>
             <span className="dot">·</span>
             <Link href="/terms">Terms of Service</Link>
+            <span className="dot">·</span>
+            <Link href="/data-deletion">Data Deletion</Link>
           </div>
           <p>© 2026 Scramble Marketing Hub. All rights reserved.</p>
         </div>
