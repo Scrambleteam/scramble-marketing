@@ -36,6 +36,8 @@ export function PublicFooter() {
           <Link href="/cookie-policy">Cookie Policy</Link>
           <span className="dot">·</span>
           <Link href="/terms">Terms of Service</Link>
+          <span className="dot">·</span>
+          <Link href="/data-deletion">Data Deletion</Link>
         </div>
         <p>Scramble Group Ltd.</p>
       </div>
