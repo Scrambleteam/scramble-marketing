@@ -31,6 +31,13 @@ export function metaConfigured(): boolean {
   return !!(process.env.META_SYSTEM_USER_TOKEN?.trim() && metaBusinessId());
 }
 
+/** Names (never values) of any environment variables on the live site that look Meta-related, to spot typos */
+export function metaSettingNamesSeen(): string[] {
+  return Object.keys(process.env)
+    .filter((k) => /meta|facebook|^fb_/i.test(k))
+    .map((k) => `${JSON.stringify(k)}${process.env[k]?.trim() ? "" : " (empty)"}`);
+}
+
 /** Which Meta settings the running site can't see (names only, never values) */
 export function metaMissingSettings(): string[] {
   return [
