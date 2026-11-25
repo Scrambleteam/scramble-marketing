@@ -8,6 +8,7 @@
  */
 
 import { createAdminSupabaseClient } from "./supabase";
+import { DAY_MS, cachedAds } from "./ads-cache";
 import type { PageEngagement, QueryRow } from "./seo-analysis";
 
 export const AGENCY_GOOGLE_SCOPES = [
@@ -246,7 +247,12 @@ async function adsSearch<T>(customerId: string, query: string): Promise<T[]> {
   return data.results || [];
 }
 
-export async function listAdsAccounts(): Promise<PropertyOption[]> {
+/** Account list is kept for an hour so the hub and workspaces don't each call Google */
+export function listAdsAccounts(): Promise<PropertyOption[]> {
+  return cachedAds("ads-accounts", 60 * 60 * 1000, fetchAdsAccounts);
+}
+
+async function fetchAdsAccounts(): Promise<PropertyOption[]> {
   const managerId = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID?.replace(/-/g, "");
 
   // With a manager (MCC) account: list the client accounts linked under it.
@@ -361,10 +367,15 @@ export async function analyticsMetrics(propertyId: string): Promise<{ period: Pe
   };
 }
 
+/** Ads metrics are refreshed once a day per account (see lib/ads-cache.ts) */
 export async function adsMetrics(customerId: string): Promise<{ period: Period; metrics: Metric[] }> {
-  const { current, previous } = periods(1);
   const id = customerId.replace(/-/g, "");
   if (!/^\d{10}$/.test(id)) throw new AgencyGoogleError("api_error", "Invalid Google Ads customer ID");
+  return cachedAds(`ads-metrics:${id}`, DAY_MS, () => fetchAdsMetrics(id));
+}
+
+async function fetchAdsMetrics(id: string): Promise<{ period: Period; metrics: Metric[] }> {
+  const { current, previous } = periods(1);
   type Row = {
     customer?: { currencyCode?: string };
     metrics?: { costMicros?: string; conversions?: number; conversionsValue?: number };
