@@ -28,7 +28,15 @@ export function metaBusinessId(): string | null {
 }
 
 export function metaConfigured(): boolean {
-  return !!(process.env.META_SYSTEM_USER_TOKEN && metaBusinessId());
+  return !!(process.env.META_SYSTEM_USER_TOKEN?.trim() && metaBusinessId());
+}
+
+/** Which Meta settings the running site can't see (names only, never values) */
+export function metaMissingSettings(): string[] {
+  return [
+    ...(metaBusinessId() ? [] : ["META_BUSINESS_ID"]),
+    ...(process.env.META_SYSTEM_USER_TOKEN?.trim() ? [] : ["META_SYSTEM_USER_TOKEN"]),
+  ];
 }
 
 async function graph<T>(path: string, params: Record<string, string> = {}): Promise<T> {
