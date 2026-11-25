@@ -7,7 +7,7 @@ import {
   listAnalyticsProperties,
   listSearchConsoleSites,
 } from "@/lib/google-agency";
-import { MetaError, listMetaAdAccounts, metaConfigured } from "@/lib/meta-agency";
+import { MetaError, listMetaAdAccounts, metaConfigured, metaMissingSettings } from "@/lib/meta-agency";
 
 type Listing = { options: PropertyOption[] } | { error: string };
 
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     settle(listAdsAccounts),
     metaConfigured()
       ? settle(listMetaAdAccounts)
-      : Promise.resolve<Listing>({ error: "Meta isn't set up yet (add META_BUSINESS_ID and META_SYSTEM_USER_TOKEN in Vercel)" }),
+      : Promise.resolve<Listing>({ error: `Meta isn't set up yet: the live site can't see ${metaMissingSettings().join(" and ")}. Check it is set for Production in Vercel, then redeploy.` }),
   ]);
 
   return NextResponse.json({ searchConsole, analytics, ads, meta });
