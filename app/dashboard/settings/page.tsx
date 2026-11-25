@@ -7,6 +7,7 @@ import { authClient } from "@/lib/auth-client";
 import { authFetch } from "@/lib/api-client";
 import { AGENCY_GOOGLE_EMAIL } from "@/lib/admin";
 import { SCRAMBLE_THEME } from "@/lib/scramble-theme";
+import MetaShareSteps, { META_SHARE_STYLES } from "@/components/dashboard/MetaShareSteps";
 import { SERVICE_META, servicesForTier, TierKey, ServiceKey } from "@/lib/tiers";
 
 export default function DashboardSettings() {
@@ -16,8 +17,6 @@ export default function DashboardSettings() {
   const [tier, setTier] = useState<TierKey>("full");
   const [services, setServices] = useState<ServiceKey[]>([]);
   const [metaConnected, setMetaConnected] = useState(false);
-  const [metaConnectedName, setMetaConnectedName] = useState("");
-  const [metaBusy, setMetaBusy] = useState(false);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [billingBusy, setBillingBusy] = useState(false);
@@ -39,42 +38,12 @@ export default function DashboardSettings() {
         setTier(p.tier);
         setServices(p.services || servicesForTier(p.tier));
         setSubscriptionStatus(p.subscription_status || null);
+        setMetaConnected(!!p.meta_connected);
       }
 
-      const metaStatusRes = await authFetch(`/api/auth/meta/status?clientId=${encodeURIComponent(userEmail)}`);
-      if (metaStatusRes.ok) {
-        const metaStatus = await metaStatusRes.json();
-        setMetaConnected(metaStatus.connected);
-        setMetaConnectedName(metaStatus.name || "");
-      }
       setLoading(false);
     })();
   }, [router]);
-
-  const handleConnectMeta = async () => {
-    setMetaBusy(true);
-    const res = await authFetch("/api/auth/meta/initiate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clientId: email }),
-    });
-    const data = await res.json();
-    if (data.authUrl) window.location.href = data.authUrl;
-    else setMetaBusy(false);
-  };
-
-  const handleDisconnectMeta = async () => {
-    if (!confirm("Disconnect your Meta account?")) return;
-    setMetaBusy(true);
-    await authFetch("/api/auth/meta/disconnect", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clientId: email }),
-    });
-    setMetaConnected(false);
-    setMetaConnectedName("");
-    setMetaBusy(false);
-  };
 
   const handleManageBilling = async () => {
     setBillingBusy(true);
@@ -103,6 +72,7 @@ export default function DashboardSettings() {
   return (
     <div className="sc-root">
       <style>{SCRAMBLE_THEME}</style>
+      <style>{META_SHARE_STYLES}</style>
       <style>{setStyles}</style>
 
       <nav className="sc-nav">
@@ -170,24 +140,18 @@ export default function DashboardSettings() {
               <h2 className="set-card-title">Meta Account</h2>
               {metaConnected ? (
                 <>
-                  <div className="sc-success" style={{ marginBottom: 18 }}>
-                    ✓ Connected as {metaConnectedName}
-                  </div>
-                  <button onClick={handleDisconnectMeta} disabled={metaBusy} className="set-disconnect">
-                    {metaBusy ? "..." : "Disconnect Meta Account"}
-                  </button>
+                  <div className="sc-success" style={{ marginBottom: 14 }}>✓ Your Meta ad account is connected</div>
+                  <p style={{ color: "#5a6b82", fontSize: 14, lineHeight: 1.6 }}>
+                    To stop sharing, remove Scramble from Partners in your Meta Business Settings. Your dashboard
+                    will stop showing Meta data.
+                  </p>
                 </>
               ) : (
                 <>
-                  <p style={{ color: "#5a6b82", marginBottom: 18, fontSize: 15 }}>
-                    Connect your Meta account so we can run and report on your Facebook &amp; Instagram ad campaigns.
+                  <p style={{ color: "#5a6b82", marginBottom: 6, fontSize: 15 }}>
+                    Share your Meta ad account with Scramble so we can report on your Facebook &amp; Instagram ads.
                   </p>
-                  <button onClick={handleConnectMeta} disabled={metaBusy} className="sc-btn-meta">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3V2z" fill="white" />
-                    </svg>
-                    {metaBusy ? "Opening Meta..." : "Connect Meta Account"}
-                  </button>
+                  <MetaShareSteps />
                 </>
               )}
             </div>

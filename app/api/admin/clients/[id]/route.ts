@@ -33,10 +33,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 /**
  * PATCH /api/admin/clients/[id]
  *
- * Admin only. Assigns the Google properties a client's dashboard reads
+ * Admin only. Assigns the Google properties and Meta ad account a client's dashboard reads
  * through the agency connection. Clients cannot set these themselves.
  *
- * Body: { site_url?, analytics_property_id?, ads_customer_id? } — null clears
+ * Body: { site_url?, analytics_property_id?, ads_customer_id?, meta_ad_account_id? } — null clears
  */
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const admin = await getAdminUser(request);
@@ -72,6 +72,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
     updates.ads_customer_id = v;
   }
+  if ("meta_ad_account_id" in body) {
+    const v = clean(body.meta_ad_account_id)?.replace(/^act_/, "") ?? null;
+    if (v && !/^\d+$/.test(v)) {
+      return NextResponse.json({ error: "Invalid Meta ad account ID" }, { status: 400 });
+    }
+    updates.meta_ad_account_id = v;
+  }
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
@@ -81,7 +88,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const supabase = createAdminSupabaseClient();
     const { data: current, error: readError } = await supabase
       .from("scramble_users")
-      .select("site_url, analytics_property_id, ads_customer_id")
+      .select("site_url, analytics_property_id, ads_customer_id, meta_ad_account_id")
       .eq("id", id)
       .single();
     if (readError || !current) {
@@ -95,10 +102,11 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         ...updates,
         // "Connected" now means an admin has assigned at least one property
         google_connected: !!(merged.site_url || merged.analytics_property_id || merged.ads_customer_id),
+        meta_connected: !!merged.meta_ad_account_id,
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
-      .select("id, site_url, analytics_property_id, ads_customer_id, google_connected")
+      .select("id, site_url, analytics_property_id, ads_customer_id, meta_ad_account_id, google_connected, meta_connected")
       .single();
 
     if (error) {
@@ -111,6 +119,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       site_url: "Search Console",
       analytics_property_id: "GA4",
       ads_customer_id: "Google Ads",
+      meta_ad_account_id: "Meta Ads",
     };
     const changes = Object.entries(updates)
       .filter(([k, v]) => (current as Record<string, string | null>)[k] !== v)
@@ -119,7 +128,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       await supabase.from("client_notes").insert({
         scramble_user_id: id,
         type: "system",
-        content: `Google accounts: ${changes.join("; ")}`,
+        content: `Connected accounts: ${changes.join("; ")}`,
         author: "Scramble",
       });
     }

@@ -9,6 +9,7 @@ export interface Assignments {
   site_url: string | null;
   analytics_property_id: string | null;
   ads_customer_id: string | null;
+  meta_ad_account_id: string | null;
 }
 
 const FIELDS: {
@@ -20,6 +21,7 @@ const FIELDS: {
   { service: "search_console", field: "site_url", listing: "searchConsole", label: "Search Console site" },
   { service: "analytics", field: "analytics_property_id", listing: "analytics", label: "GA4 property" },
   { service: "ads", field: "ads_customer_id", listing: "ads", label: "Google Ads account" },
+  { service: "meta_ads", field: "meta_ad_account_id", listing: "meta", label: "Meta ad account" },
 ];
 
 /**
@@ -37,7 +39,7 @@ export default function ClientPropertyEditor({
   services: ServiceKey[];
   initial: Assignments;
   accounts: AgencyAccounts | null;
-  onSaved: (a: Assignments & { google_connected: boolean }) => void;
+  onSaved: (a: Assignments & { google_connected: boolean; meta_connected: boolean }) => void;
 }) {
   const [values, setValues] = useState<Assignments>(initial);
   const [saving, setSaving] = useState(false);
@@ -68,7 +70,7 @@ export default function ClientPropertyEditor({
   };
 
   if (fields.length === 0) {
-    return <p className="prop-hint">This plan has no Google services to assign.</p>;
+    return <p className="prop-hint">This plan has no accounts to assign.</p>;
   }
 
   return (
@@ -98,7 +100,7 @@ export default function ClientPropertyEditor({
             </select>
             {listing && "error" in listing && <span className="prop-error">{listing.error}</span>}
             {listing && "options" in listing && options.length === 0 && (
-              <span className="prop-hint">Nothing shared with the agency account yet.</span>
+              <span className="prop-hint">{f.service === "meta_ads" ? "No ad accounts shared with Scramble's Meta business yet." : "Nothing shared with the agency account yet."}</span>
             )}
           </label>
         );
@@ -115,7 +117,7 @@ export default function ClientPropertyEditor({
 }
 
 export const PROPERTY_EDITOR_STYLES = `
-  .prop-editor { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; width: 100%; padding-top: 16px; border-top: 1px solid rgba(122,178,255,0.15); }
+  .prop-editor { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; width: 100%; padding-top: 16px; border-top: 1px solid rgba(122,178,255,0.15); }
   .prop-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
   .prop-label { font-size: 13px; font-weight: 600; color: #4a5a72; }
   .prop-select { padding: 10px 12px; font-size: 14px; }

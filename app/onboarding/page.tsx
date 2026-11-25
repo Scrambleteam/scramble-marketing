@@ -9,6 +9,7 @@ import { SCRAMBLE_THEME } from "@/lib/scramble-theme";
 import { servicesForTier, TierKey, ServiceKey } from "@/lib/tiers";
 import { AGENCY_GOOGLE_EMAIL } from "@/lib/admin";
 import { GOOGLE_ACCESS_STEPS } from "@/lib/agency-access";
+import MetaShareSteps, { META_SHARE_STYLES } from "@/components/dashboard/MetaShareSteps";
 
 
 function OnboardingInner() {
@@ -22,26 +23,15 @@ function OnboardingInner() {
   // that they've ticked it off before moving on.
   const [accessShared, setAccessShared] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Clients share their Meta ad account with Scramble (Partners); this records they've done it
   const [metaConnected, setMetaConnected] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [connectingMeta, setConnectingMeta] = useState(false);
-  const [oauthError, setOauthError] = useState("");
   const [finishError, setFinishError] = useState("");
   const [finishing, setFinishing] = useState(false);
 
   useEffect(() => {
     (async () => {
-      // Check OAuth result in URL
       const params = new URLSearchParams(window.location.search);
-      const urlMetaSuccess = params.get("meta_success");
-      const urlMetaError = params.get("meta_error");
-      
-      if (urlMetaSuccess) {
-        setMetaConnected(true);
-      }
-      if (urlMetaError) {
-        setOauthError("Meta connection failed. Please try again.");
-      }
 
       // Get logged-in user
       const { data } = await authClient.auth.getUser();
@@ -57,18 +47,9 @@ function OnboardingInner() {
           setSiteUrl(profile.website_domain || "");
           setTier(profile.tier || "full");
           setServices(profile.services || servicesForTier(profile.tier || "full"));
-          if (!urlMetaSuccess) {
-            setMetaConnected(profile.meta_connected || false);
-          }
+          setMetaConnected(profile.meta_connected || false);
         }
 
-        if (!urlMetaSuccess && !urlMetaError) {
-          const metaStatusRes = await authFetch(`/api/auth/meta/status?clientId=${encodeURIComponent(userEmail)}`);
-          if (metaStatusRes.ok) {
-            const metaStatus = await metaStatusRes.json();
-            setMetaConnected(metaStatus.connected);
-          }
-        }
       }
       setLoading(false);
     })();
@@ -98,7 +79,6 @@ function OnboardingInner() {
         body: JSON.stringify({
           email,
           onboarding_complete: true,
-          meta_connected: metaConnected,
           website_domain: siteUrl || null,
         }),
       });
@@ -118,6 +98,7 @@ function OnboardingInner() {
     <div className="sc-root">
       <style>{SCRAMBLE_THEME}</style>
       <style>{onboardingStyles}</style>
+      <style>{META_SHARE_STYLES}</style>
 
       <nav className="sc-nav">
         <div className="sc-nav-inner">
@@ -170,7 +151,7 @@ function OnboardingInner() {
                 Welcome{company ? `, ${company}` : ""} 👋
               </h1>
               <p className="onboard-sub">
-                Give the Scramble team access to your Google accounts and connect Meta.
+                Give the Scramble team access to your Google accounts and share your Meta ad account.
                 We&apos;ll set up your dashboards from there.
               </p>
 
@@ -191,8 +172,6 @@ function OnboardingInner() {
                   This helps us match your website to the right Google accounts.
                 </p>
               </div>
-
-              {oauthError && <div className="sc-error" style={{ marginBottom: 20 }}>{oauthError}</div>}
 
               {/* ── Connection Cards ── */}
               <div className="onboard-services-label" style={{ marginBottom: 14 }}>Give us access</div>
@@ -258,40 +237,13 @@ function OnboardingInner() {
                       <div className="connect-card-desc">Facebook &amp; Instagram Ads</div>
                     </div>
                   </div>
-                  {metaConnected && <span className="connect-status-done">✓ Connected</span>}
+                  {metaConnected && <span className="connect-status-done">✓ Done</span>}
                 </div>
-                {!metaConnected && (
-                  <button
-                    onClick={() => {
-                      setConnectingMeta(true);
-                      fetch("/api/auth/meta/initiate", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ clientId: email }),
-                      })
-                        .then((r) => r.json())
-                        .then((d) => {
-                          if (d.authUrl) window.location.href = d.authUrl;
-                          else {
-                            setOauthError(d.error || "Could not start Meta connection.");
-                            setConnectingMeta(false);
-                          }
-                        })
-                        .catch(() => {
-                          setOauthError("Could not start Meta connection.");
-                          setConnectingMeta(false);
-                        });
-                    }}
-                    className="sc-btn-meta"
-                    disabled={connectingMeta}
-                    style={{ marginTop: 14 }}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                      <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3V2z" fill="white" />
-                    </svg>
-                    {connectingMeta ? "Opening Meta..." : "Connect Meta Ads Account"}
-                  </button>
-                )}
+                {!metaConnected && <MetaShareSteps />}
+                <label className="access-confirm">
+                  <input type="checkbox" checked={metaConnected} onChange={(e) => setMetaConnected(e.target.checked)} />
+                  I&apos;ve shared my Meta ad account with Scramble
+                </label>
               </div>
 
               {finishError && <div className="sc-error" style={{ marginBottom: 16 }}>{finishError}</div>}
