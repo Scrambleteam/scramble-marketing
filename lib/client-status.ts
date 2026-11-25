@@ -5,7 +5,7 @@ import { SERVICE_META, ServiceKey, TierKey, servicesForTier } from "./tiers";
 
 /** scramble_users columns the admin hub and workspace need */
 export const ADMIN_CLIENT_COLUMNS =
-  "id, email, company_name, tier, services, created_at, website_domain, site_url, analytics_property_id, ads_customer_id, meta_connected, subscription_status, current_period_end, client_workspace(brief_updated_at)";
+  "id, email, company_name, tier, services, created_at, website_domain, site_url, analytics_property_id, ads_customer_id, meta_ad_account_id, meta_connected, subscription_status, current_period_end, client_workspace(brief_updated_at)";
 
 export interface AdminClient {
   id: string;
@@ -18,6 +18,7 @@ export interface AdminClient {
   site_url: string | null;
   analytics_property_id: string | null;
   ads_customer_id: string | null;
+  meta_ad_account_id: string | null;
   meta_connected: boolean | null;
   subscription_status: string | null;
   current_period_end: string | null;
@@ -44,6 +45,7 @@ export interface AgencyAccounts {
   searchConsole: Listing;
   analytics: Listing;
   ads: Listing;
+  meta: Listing;
 }
 
 // ─── Billing ────────────────────────────────────────────────────────────────
@@ -98,7 +100,7 @@ export type LightState =
   | "unverified" //  assigned, but we couldn't check (Google not connected / listing failed)
   | "broken" //      assigned, but the agency account can no longer see it
   | "not_assigned" // nothing assigned yet
-  | "waiting"; //    Meta: client hasn't connected it
+  | "waiting"; //    (unused now that Meta works like Google)
 
 export interface ServiceLight {
   service: ServiceKey;
@@ -110,14 +112,12 @@ const ASSIGNMENT: Partial<Record<ServiceKey, { field: keyof AdminClient; listing
   search_console: { field: "site_url", listing: "searchConsole" },
   analytics: { field: "analytics_property_id", listing: "analytics" },
   ads: { field: "ads_customer_id", listing: "ads" },
+  meta_ads: { field: "meta_ad_account_id", listing: "meta" },
 };
 
 export function serviceLights(c: AdminClient, accounts: AgencyAccounts | null): ServiceLight[] {
   return clientServices(c).map((service) => {
     const label = SERVICE_META[service].label;
-    if (service === "meta_ads") {
-      return { service, label, state: c.meta_connected ? "live" : "waiting" };
-    }
     const map = ASSIGNMENT[service]!;
     const assigned = c[map.field] as string | null;
     if (!assigned) return { service, label, state: "not_assigned" };

@@ -13,6 +13,7 @@ import {
   analyticsMetrics,
   searchConsoleMetrics,
 } from "./google-agency";
+import { MetaError, metaMetrics } from "./meta-agency";
 
 export type ServiceResult =
   | { status: "ok"; period: Period; metrics: Metric[] }
@@ -23,6 +24,7 @@ export interface ClientMetrics {
   search_console: ServiceResult | null;
   analytics: ServiceResult | null;
   ads: ServiceResult | null;
+  meta_ads: ServiceResult | null;
 }
 
 export interface MetricsProfile {
@@ -31,10 +33,11 @@ export interface MetricsProfile {
   site_url: string | null;
   analytics_property_id: string | null;
   ads_customer_id: string | null;
+  meta_ad_account_id: string | null;
 }
 
 /** Columns to select from scramble_users for getClientMetrics */
-export const METRICS_PROFILE_COLUMNS = "tier, services, site_url, analytics_property_id, ads_customer_id";
+export const METRICS_PROFILE_COLUMNS = "tier, services, site_url, analytics_property_id, ads_customer_id, meta_ad_account_id";
 
 async function load(
   id: string | null,
@@ -45,7 +48,7 @@ async function load(
     return { status: "ok", ...(await fn(id)) };
   } catch (err) {
     // Details stay in the server log; callers see a neutral status
-    console.error("[client metrics]", err instanceof AgencyGoogleError ? `${err.code}: ${err.message}` : err);
+    console.error("[client metrics]", err instanceof AgencyGoogleError || err instanceof MetaError ? `${err.code}: ${err.message}` : err);
     return { status: "unavailable" };
   }
 }
@@ -55,11 +58,12 @@ export async function getClientMetrics(profile: MetricsProfile): Promise<ClientM
     ? profile.services
     : servicesForTier(profile.tier as TierKey);
 
-  const [search_console, analytics, ads] = await Promise.all([
+  const [search_console, analytics, ads, meta_ads] = await Promise.all([
     services.includes("search_console") ? load(profile.site_url, searchConsoleMetrics) : null,
     services.includes("analytics") ? load(profile.analytics_property_id, analyticsMetrics) : null,
     services.includes("ads") ? load(profile.ads_customer_id, adsMetrics) : null,
+    services.includes("meta_ads") ? load(profile.meta_ad_account_id, metaMetrics) : null,
   ]);
 
-  return { search_console, analytics, ads };
+  return { search_console, analytics, ads, meta_ads };
 }

@@ -26,30 +26,22 @@ export type ServiceData =
 export default function ServiceMetricsCard({
   service,
   data,
-  metaConnected,
 }: {
   service: ServiceKey;
-  /** undefined while loading (or Meta); null if not in the response */
+  /** undefined while loading; null if not in the response */
   data: ServiceData | undefined;
-  metaConnected: boolean;
 }) {
   const meta = SERVICE_META[service];
 
   let body: React.ReactNode;
-  if (service === "meta_ads") {
-    body = (
-      <div className="service-dash-locked">
-        {metaConnected
-          ? "Your Meta account is connected. Facebook & Instagram results will appear here soon."
-          : "🔒 Connect Meta to unlock Facebook & Instagram Ads data"}
-      </div>
-    );
-  } else if (data === undefined) {
+  if (data === undefined) {
     body = <div className="service-dash-locked">Loading your data…</div>;
   } else if (!data || data.status === "not_set_up") {
     body = (
       <div className="service-dash-locked">
-        Your Scramble team is setting this up. Your {meta.label} data will appear here once it&apos;s connected.
+        {service === "meta_ads"
+          ? "Share your Meta ad account with Scramble and your Facebook & Instagram results will appear here."
+          : <>Your Scramble team is setting this up. Your {meta.label} data will appear here once it&apos;s connected.</>}
       </div>
     );
   } else if (data.status === "unavailable") {

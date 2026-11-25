@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { authFetch } from "@/lib/api-client";
 import { AGENCY_GOOGLE_EMAIL } from "@/lib/admin";
 import { GOOGLE_ACCESS_STEPS } from "@/lib/agency-access";
+import { metaShareText } from "@/components/dashboard/MetaShareSteps";
 import {
   AdminClient,
   billingLabel,
@@ -28,7 +29,7 @@ import { TEAM_PICKER_STYLES, useTeamMember } from "@/components/admin/TeamMember
 import { SectionKey, sectionIsEmpty } from "@/lib/workspace";
 
 type Tab = "overview" | "connections" | "brief" | "strategy" | "seo" | "changes" | "activity";
-type Metrics = Partial<Record<"search_console" | "analytics" | "ads", ServiceData>>;
+type Metrics = Partial<Record<"search_console" | "analytics" | "ads" | "meta_ads", ServiceData>>;
 
 export default function ClientWorkspacePage() {
   return (
@@ -46,6 +47,7 @@ function ClientWorkspace() {
   const [tab, setTab] = useState<Tab>("overview");
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [metricsKey, setMetricsKey] = useState(0);
+  const [metaBusinessId, setMetaBusinessId] = useState<string | null>(null);
   const [sections, setSections] = useState<Record<SectionKey, SectionState> | null>(null);
   const [sectionsError, setSectionsError] = useState(false);
   const team = useTeamMember();
@@ -68,6 +70,13 @@ function ClientWorkspace() {
       .then((d) => setClient(d.client))
       .catch(() => setNotFound(true));
   }, [id]);
+
+  useEffect(() => {
+    authFetch("/api/meta/partner-info")
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((d: { businessId?: string | null }) => setMetaBusinessId(d.businessId ?? null))
+      .catch(() => {});
+  }, []);
 
   // Reloaded after assignments change so the Overview matches what the client sees
   useEffect(() => {
@@ -203,8 +212,7 @@ function ClientWorkspace() {
               <ServiceMetricsCard
                 key={service}
                 service={service}
-                data={service === "meta_ads" ? undefined : metrics ? metrics[service] ?? null : undefined}
-                metaConnected={!!client.meta_connected}
+                data={metrics ? metrics[service] ?? null : undefined}
               />
             ))}
           </div>
@@ -223,9 +231,9 @@ function ClientWorkspace() {
           </div>
 
           <div className="ws-panel">
-            <h2 className="ws-panel-title">Google accounts</h2>
+            <h2 className="ws-panel-title">Connected accounts</h2>
             <p className="ws-help">
-              Choose which of the agency account&apos;s properties feed this client&apos;s dashboard.
+              Choose which Google properties and Meta ad account feed this client&apos;s dashboard.
               {agency.accountsLoading && " Loading what the agency account can see…"}
             </p>
             <ClientPropertyEditor
@@ -235,6 +243,7 @@ function ClientWorkspace() {
                 site_url: client.site_url,
                 analytics_property_id: client.analytics_property_id,
                 ads_customer_id: client.ads_customer_id,
+                meta_ad_account_id: client.meta_ad_account_id,
               }}
               accounts={agency.accounts}
               onSaved={(saved) => {
@@ -244,18 +253,7 @@ function ClientWorkspace() {
             />
           </div>
 
-          {services.includes("meta_ads") && (
-            <div className="ws-panel">
-              <h2 className="ws-panel-title">Meta</h2>
-              <p className="ws-help">
-                {client.meta_connected
-                  ? "The client has connected their Meta account."
-                  : "The client hasn't connected Meta yet. They do this themselves from their dashboard settings."}
-              </p>
-            </div>
-          )}
-
-          <AccessInstructions services={services} />
+          <AccessInstructions services={services} metaBusinessId={metaBusinessId} />
         </div>
       )}
     </>
@@ -263,17 +261,24 @@ function ClientWorkspace() {
 }
 
 /** Copyable instructions to send a client who hasn't shared access yet */
-function AccessInstructions({ services }: { services: string[] }) {
+function AccessInstructions({ services, metaBusinessId }: { services: string[]; metaBusinessId: string | null }) {
   const [copied, setCopied] = useState(false);
   const steps = services
     .map((s) => GOOGLE_ACCESS_STEPS[s as keyof typeof GOOGLE_ACCESS_STEPS])
     .filter((s): s is { title: string; steps: string } => !!s);
-  if (steps.length === 0) return null;
+  const hasMeta = services.includes("meta_ads");
+  if (steps.length === 0 && !hasMeta) return null;
 
   const text = [
-    `Please add ${AGENCY_GOOGLE_EMAIL} as a user on your Google accounts:`,
-    "",
-    ...steps.map((s) => `• ${s.title}: ${s.steps}`),
+    ...(steps.length
+      ? [
+          `Please add ${AGENCY_GOOGLE_EMAIL} as a user on your Google accounts:`,
+          "",
+          ...steps.map((s) => `• ${s.title}: ${s.steps}`),
+        ]
+      : []),
+    ...(steps.length && hasMeta ? [""] : []),
+    ...(hasMeta ? [metaShareText(metaBusinessId)] : []),
   ].join("\n");
 
   const copy = async () => {

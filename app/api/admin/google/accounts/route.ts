@@ -7,6 +7,7 @@ import {
   listAnalyticsProperties,
   listSearchConsoleSites,
 } from "@/lib/google-agency";
+import { MetaError, listMetaAdAccounts, metaConfigured } from "@/lib/meta-agency";
 
 type Listing = { options: PropertyOption[] } | { error: string };
 
@@ -15,7 +16,7 @@ async function settle(fn: () => Promise<PropertyOption[]>): Promise<Listing> {
     return { options: await fn() };
   } catch (err) {
     console.error("[admin google accounts]", err);
-    return { error: err instanceof AgencyGoogleError ? err.message : "Could not load from Google" };
+    return { error: err instanceof AgencyGoogleError || err instanceof MetaError ? err.message : "Could not load from Google" };
   }
 }
 
@@ -30,11 +31,14 @@ export async function GET(request: NextRequest) {
   const admin = await getAdminUser(request);
   if (!admin) return unauthorizedResponse("Admin access required");
 
-  const [searchConsole, analytics, ads] = await Promise.all([
+  const [searchConsole, analytics, ads, meta] = await Promise.all([
     settle(listSearchConsoleSites),
     settle(listAnalyticsProperties),
     settle(listAdsAccounts),
+    metaConfigured()
+      ? settle(listMetaAdAccounts)
+      : Promise.resolve<Listing>({ error: "Meta isn't set up yet (add META_BUSINESS_ID and META_SYSTEM_USER_TOKEN in Vercel)" }),
   ]);
 
-  return NextResponse.json({ searchConsole, analytics, ads });
+  return NextResponse.json({ searchConsole, analytics, ads, meta });
 }

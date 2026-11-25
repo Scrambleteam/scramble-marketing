@@ -8,6 +8,7 @@ import { authFetch } from "@/lib/api-client";
 import { SCRAMBLE_THEME } from "@/lib/scramble-theme";
 import { servicesForTier, TierKey, ServiceKey } from "@/lib/tiers";
 import ServiceMetricsCard, { ServiceData, SERVICE_CARD_STYLES } from "@/components/dashboard/ServiceMetricsCard";
+import MetaShareSteps, { META_SHARE_STYLES } from "@/components/dashboard/MetaShareSteps";
 
 interface Profile {
   email: string;
@@ -16,15 +17,13 @@ interface Profile {
   services: ServiceKey[];
 }
 
-type Metrics = Partial<Record<"search_console" | "analytics" | "ads", ServiceData>>;
+type Metrics = Partial<Record<"search_console" | "analytics" | "ads" | "meta_ads", ServiceData>>;
 
 export default function ClientDashboard() {
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
-  const [metaConnected, setMetaConnected] = useState(false);
-  const [metaBusy, setMetaBusy] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -48,11 +47,6 @@ export default function ClientDashboard() {
           .then(setMetrics)
           .catch(() => setMetrics({}));
 
-        const metaStatusRes = await authFetch(`/api/auth/meta/status?clientId=${encodeURIComponent(email)}`);
-        if (metaStatusRes.ok) {
-          const metaStatus = await metaStatusRes.json();
-          setMetaConnected(metaStatus.connected);
-        }
       }
       setLoading(false);
     })();
@@ -61,19 +55,6 @@ export default function ClientDashboard() {
   const handleSignOut = async () => {
     await authClient.auth.signOut();
     router.push("/landing");
-  };
-
-  const handleDisconnectMeta = async () => {
-    if (!profile) return;
-    if (!confirm("Disconnect your Meta account? We'll stop reporting on your Facebook & Instagram ads until you reconnect.")) return;
-    setMetaBusy(true);
-    await authFetch("/api/auth/meta/disconnect", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clientId: profile.email }),
-    });
-    setMetaConnected(false);
-    setMetaBusy(false);
   };
 
   if (loading) {
@@ -96,12 +77,17 @@ export default function ClientDashboard() {
   }
 
   const services = profile.services?.length ? profile.services : servicesForTier(profile.tier);
+  // Meta is read through the ad account the client shared with Scramble and an admin assigned
+  const hasMeta = services.includes("meta_ads");
+  const metaStatus = metrics?.meta_ads?.status;
+  const metaConnected = !!metaStatus && metaStatus !== "not_set_up";
 
   return (
     <div className="sc-root">
       <style>{SCRAMBLE_THEME}</style>
       <style>{dashStyles}</style>
       <style>{SERVICE_CARD_STYLES}</style>
+      <style>{META_SHARE_STYLES}</style>
 
       {/* Top bar */}
       <nav className="sc-nav">
@@ -128,32 +114,22 @@ export default function ClientDashboard() {
             <h1 className="dash-title">Welcome back, {profile.company_name}</h1>
             <p className="dash-subtitle">Your marketing over the last 28 days, compared with the 28 days before.</p>
           </div>
-          <div className="dash-conn-group">
-            <div className={`dash-conn ${metaConnected ? "on" : "off"}`}>
-              <span className="dash-conn-dot" />
-              {metaConnected ? "Meta Connected" : "Meta Not Connected"}
-              {metaConnected && (
-                <button
-                  onClick={handleDisconnectMeta}
-                  disabled={metaBusy}
-                  className="dash-conn-disconnect"
-                  title="Disconnect Meta"
-                >
-                  {metaBusy ? "…" : "Disconnect"}
-                </button>
-              )}
+          {hasMeta && metrics && (
+            <div className="dash-conn-group">
+              <div className={`dash-conn ${metaConnected ? "on" : "off"}`}>
+                <span className="dash-conn-dot" />
+                {metaConnected ? "Meta Connected" : "Meta Not Connected"}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Meta connect prompt if not connected */}
-        {!metaConnected && (
-          <div className="dash-connect-banner dash-connect-meta">
-            <div>
-              <h3>Connect Meta to track Facebook &amp; Instagram Ads</h3>
-              <p>See ad spend, clicks, conversions, and ROAS from your Meta campaigns.</p>
-            </div>
-            <Link href="/onboarding" className="dash-connect-btn dash-connect-btn-meta">Connect Meta →</Link>
+        {/* How to share the Meta ad account, until it is connected */}
+        {hasMeta && metrics && !metaConnected && (
+          <div className="dash-connect-banner dash-connect-meta" style={{ display: "block" }}>
+            <h3>Share your Meta ad account to track Facebook &amp; Instagram Ads</h3>
+            <p>See ad spend, clicks, conversions and ROAS. You stay in control and can remove our access at any time.</p>
+            <MetaShareSteps />
           </div>
         )}
 
@@ -163,8 +139,7 @@ export default function ClientDashboard() {
             <ServiceMetricsCard
               key={service}
               service={service}
-              data={service === "meta_ads" ? undefined : metrics?.[service] ?? (metrics ? null : undefined)}
-              metaConnected={metaConnected}
+              data={metrics?.[service] ?? (metrics ? null : undefined)}
             />
           ))}
         </div>

@@ -73,7 +73,7 @@ export async function PATCH(request: NextRequest) {
     if ("tier" in updates) allowed.tier = updates.tier;
     if ("services" in updates) allowed.services = updates.services;
     if ("onboarding_complete" in updates) allowed.onboarding_complete = updates.onboarding_complete;
-    if ("meta_connected" in updates) allowed.meta_connected = updates.meta_connected;
+    // meta_connected is set by admins when they assign the client's Meta ad account
     if ("website_domain" in updates) allowed.website_domain = updates.website_domain;
     // site_url, analytics_property_id, ads_customer_id and google_connected are
     // set by admins only (/api/admin/clients/[id]). They decide which data the
