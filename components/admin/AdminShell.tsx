@@ -64,6 +64,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
               <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
                 <span className="admin-nav-badge">Admin</span>
                 <Link href="/admin" className="sc-link" style={{ fontSize: 15 }}>Clients</Link>
+                <Link href="/admin/app" className="sc-link" style={{ fontSize: 15 }}>Mobile app</Link>
                 <Link href="/admin/inbox" className="sc-link" style={{ fontSize: 15 }}>
                   Inbox{toReview > 0 && <span className="admin-nav-count">{toReview}</span>}
                 </Link>
