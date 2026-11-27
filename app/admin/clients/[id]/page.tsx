@@ -141,6 +141,12 @@ function ClientWorkspace() {
         </div>
       </div>
 
+      <div style={{ margin: "0 0 16px" }}>
+        <Link href={`/admin/clients/${client.id}/preview`} target="_blank" className="agency-btn-primary" style={{ display: "inline-block", textDecoration: "none" }}>
+          View as client →
+        </Link>
+      </div>
+
       <div className={`ws-action ${action.attention ? "attention" : ""}`}>
         <strong>Next step:</strong> {action.text}
       </div>
