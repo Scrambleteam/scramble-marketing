@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { SCRAMBLE_THEME } from "@/lib/scramble-theme";
 import type { ServiceKey } from "@/lib/tiers";
@@ -38,6 +38,15 @@ export default function ClientDashboardView({
 }) {
   const [tab, setTab] = useState<ClientTab>("overview");
   const [reportSub, setReportSub] = useState<"weekly" | "monthly">("weekly");
+  const [metaOpen, setMetaOpen] = useState(false);
+
+  // Escape closes the Meta setup window
+  useEffect(() => {
+    if (!metaOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMetaOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [metaOpen]);
 
   // Meta is read through the ad account the client shared with Scramble and an admin assigned
   const hasMeta = services.includes("meta_ads");
@@ -64,22 +73,21 @@ export default function ClientDashboardView({
           </div>
           {hasMeta && metrics && (
             <div className="dash-conn-group">
-              <div className={`dash-conn ${metaConnected ? "on" : "off"}`}>
-                <span className="dash-conn-dot" />
-                {metaConnected ? "Meta Connected" : "Meta Not Connected"}
-              </div>
+              {metaConnected ? (
+                <div className="dash-conn on">
+                  <span className="dash-conn-dot" />
+                  Meta Connected
+                </div>
+              ) : (
+                <button type="button" className="dash-conn off dash-conn-btn" onClick={() => setMetaOpen(true)} aria-haspopup="dialog">
+                  <span className="dash-conn-dot" />
+                  Meta not connected
+                  <span className="dash-conn-cta">Set up →</span>
+                </button>
+              )}
             </div>
           )}
         </div>
-
-        {/* How to share the Meta ad account, until it is connected */}
-        {hasMeta && metrics && !metaConnected && (
-          <div className="dash-connect-banner dash-connect-meta" style={{ display: "block" }}>
-            <h3>Share your Meta ad account to track Facebook &amp; Instagram Ads</h3>
-            <p>See ad spend, clicks, conversions and ROAS. You stay in control and can remove our access at any time.</p>
-            <MetaShareSteps />
-          </div>
-        )}
 
         <HeadlineMeasures headline={metrics?.headline} />
 
@@ -93,6 +101,20 @@ export default function ClientDashboardView({
             {services.map((service) => (
               <ServiceMetricsCard key={service} service={service} data={metrics?.[service] ?? (metrics ? null : undefined)} />
             ))}
+          </div>
+        )}
+
+        {metaOpen && (
+          <div className="dash-modal-backdrop" onClick={() => setMetaOpen(false)}>
+            <div className="dash-modal" role="dialog" aria-modal="true" aria-labelledby="meta-setup-title" onClick={(e) => e.stopPropagation()}>
+              <button type="button" className="dash-modal-close" aria-label="Close" onClick={() => setMetaOpen(false)}>×</button>
+              <h2 id="meta-setup-title" className="dash-modal-title">Share your Meta ad account</h2>
+              <p className="dash-modal-sub">
+                See ad spend, clicks, conversions and ROAS for your Facebook and Instagram ads. You stay in control and can
+                remove our access at any time.
+              </p>
+              <MetaShareSteps />
+            </div>
           </div>
         )}
 
@@ -126,6 +148,14 @@ const dashStyles = `
   }
   .dash-conn.on { background: rgba(52, 199, 123, 0.12); color: #1a8a4f; }
   .dash-conn.off { background: rgba(255, 138, 128, 0.12); color: #c0392b; }
+  .dash-conn-btn { border: 1px solid rgba(192, 57, 43, 0.25); cursor: pointer; font-family: inherit; transition: all 0.2s; }
+  .dash-conn-btn:hover { background: rgba(255, 138, 128, 0.22); transform: translateY(-1px); }
+  .dash-conn-cta { font-weight: 800; margin-left: 2px; }
+  .dash-modal-backdrop { position: fixed; inset: 0; background: rgba(16, 30, 52, 0.45); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .dash-modal { position: relative; background: white; border-radius: 22px; padding: 30px 32px; max-width: 560px; width: 100%; max-height: 88vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(16, 30, 52, 0.3); }
+  .dash-modal-title { font-size: 22px; font-weight: 800; color: #16243a; margin: 0 28px 6px 0; }
+  .dash-modal-sub { font-size: 14px; color: #5a6b82; line-height: 1.55; margin: 0 0 4px; }
+  .dash-modal-close { position: absolute; top: 14px; right: 16px; width: 36px; height: 36px; border-radius: 50%; border: none; background: rgba(74,158,255,0.1); color: #2d7fe0; font-size: 24px; line-height: 1; cursor: pointer; }
   .dash-conn-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
   .dash-conn-disconnect {
     background: rgba(0,0,0,0.08); border: none; color: inherit; font-size: 12px; font-weight: 700;
