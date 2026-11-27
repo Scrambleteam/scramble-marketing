@@ -106,6 +106,8 @@ export interface ServiceLight {
   service: ServiceKey;
   label: string;
   state: LightState;
+  /** Set when the data comes through a third-party route (e.g. "Maton" for Google Ads) */
+  via?: string;
 }
 
 const ASSIGNMENT: Partial<Record<ServiceKey, { field: keyof AdminClient; listing: keyof AgencyAccounts }>> = {
@@ -115,16 +117,17 @@ const ASSIGNMENT: Partial<Record<ServiceKey, { field: keyof AdminClient; listing
   meta_ads: { field: "meta_ad_account_id", listing: "meta" },
 };
 
-export function serviceLights(c: AdminClient, accounts: AgencyAccounts | null): ServiceLight[] {
+export function serviceLights(c: AdminClient, accounts: AgencyAccounts | null, adsVia?: string): ServiceLight[] {
   return clientServices(c).map((service) => {
     const label = SERVICE_META[service].label;
     const map = ASSIGNMENT[service]!;
     const assigned = c[map.field] as string | null;
-    if (!assigned) return { service, label, state: "not_assigned" };
+    const via = service === "ads" ? adsVia : undefined;
+    if (!assigned) return { service, label, state: "not_assigned", via };
     const listing = accounts?.[map.listing];
-    if (!listing || "error" in listing) return { service, label, state: "unverified" };
+    if (!listing || "error" in listing) return { service, label, state: "unverified", via };
     const visible = listing.options.some((o) => o.id === assigned);
-    return { service, label, state: visible ? "live" : "broken" };
+    return { service, label, state: visible ? "live" : "broken", via };
   });
 }
 
