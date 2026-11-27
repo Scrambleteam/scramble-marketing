@@ -96,7 +96,7 @@ function ClientWorkspace() {
   }
   if (!client) return <div className="ws-empty">Loading client…</div>;
 
-  const lights = serviceLights(client, agency.accounts);
+  const lights = serviceLights(client, agency.accounts, agency.status?.ads.provider === "maton" ? "Maton" : undefined);
   const action = nextAction(client, lights);
   const billing = billingLabel(client.subscription_status);
   const services = clientServices(client);

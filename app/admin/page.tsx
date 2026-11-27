@@ -49,7 +49,7 @@ function ClientHub() {
     return (clients || [])
       .filter(showInHub)
       .map((client) => {
-        const lights = serviceLights(client, agency.accounts);
+        const lights = serviceLights(client, agency.accounts, agency.status?.ads.provider === "maton" ? "Maton" : undefined);
         return { client, lights, action: nextAction(client, lights) };
       })
       .sort(
@@ -57,7 +57,7 @@ function ClientHub() {
           Number(b.action.attention) - Number(a.action.attention) ||
           a.client.company_name.localeCompare(b.client.company_name)
       );
-  }, [clients, agency.accounts]);
+  }, [clients, agency.accounts, agency.status]);
 
   const notPaid = (clients || []).filter((c) => !isPayingClient(c));
   // While the testing switch is on, unpaid clients already have cards, so the extra list is hidden
