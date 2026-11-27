@@ -619,6 +619,20 @@ function NotificationsCard({ member }: { member: TeamMember | null }) {
     }
   };
 
+  const sendPreview = async (slot: "daily" | "sunday-am") => {
+    if (!member) return setMessage("Choose who you are above first.");
+    setBusy(true);
+    setMessage("");
+    const res = await authFetch("/api/admin/push/reminder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ by: member, slot }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setBusy(false);
+    setMessage(res.ok ? "Sent. It should arrive in a few seconds." : data.error || "Couldn’t send.");
+  };
+
   const sendTest = async () => {
     if (!member) return setMessage("Choose who you are above first.");
     setBusy(true);
@@ -655,6 +669,11 @@ function NotificationsCard({ member }: { member: TeamMember | null }) {
           <div className="ta-card-actions">
             <button className="ta-btn primary" onClick={sendTest} disabled={busy}>Send me a test</button>
             <button className="ta-btn" onClick={turnOff} disabled={busy}>Turn off</button>
+          </div>
+          <p className="ta-note">Reminders: Sunday 10:00 and 18:00, and every weekday at 08:00. Preview them:</p>
+          <div className="ta-card-actions">
+            <button className="ta-btn" onClick={() => sendPreview("daily")} disabled={busy}>Today’s summary</button>
+            <button className="ta-btn" onClick={() => sendPreview("sunday-am")} disabled={busy}>Sunday plan</button>
           </div>
         </>
       )}
