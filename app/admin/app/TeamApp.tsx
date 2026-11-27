@@ -520,16 +520,146 @@ function MoreView({ member, setMember, onSignOut }: { member: TeamMember | null;
         )}
       </section>
 
-      <section className="ta-card">
-        <h2 className="ta-card-title">Notifications</h2>
-        <p className="ta-note">Coming next. Once the app is on your home screen, we’ll switch on the Sunday and daily reminders.</p>
-      </section>
+      <NotificationsCard member={member} />
 
       <section className="ta-card">
         <Link href="/admin" className="ta-row-link">Open the full admin site →</Link>
         <button className="ta-row-link out" onClick={onSignOut}>Sign out</button>
       </section>
     </>
+  );
+}
+
+// ─── Notifications ──────────────────────────────────────────────────────────
+
+type PushState = "loading" | "unsupported" | "needs-install" | "not-configured" | "off" | "on" | "denied";
+
+function urlBase64ToBytes(base64: string) {
+  const padded = (base64 + "=".repeat((4 - (base64.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(padded);
+  return Uint8Array.from(raw, (c) => c.charCodeAt(0));
+}
+
+function NotificationsCard({ member }: { member: TeamMember | null }) {
+  const [state, setState] = useState<PushState>("loading");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      const ua = navigator.userAgent;
+      const isIos = /iPad|iPhone|iPod/.test(ua);
+      const installed =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        (navigator as Navigator & { standalone?: boolean }).standalone === true;
+      if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+        return setState(isIos && !installed ? "needs-install" : "unsupported");
+      }
+      const keyRes = await authFetch("/api/admin/push/key").catch(() => null);
+      const key = keyRes?.ok ? await keyRes.json() : null;
+      if (!key?.configured) return setState("not-configured");
+      if (Notification.permission === "denied") return setState("denied");
+      const reg = await navigator.serviceWorker.getRegistration("/admin/app");
+      const sub = await reg?.pushManager.getSubscription();
+      setState(sub && Notification.permission === "granted" ? "on" : "off");
+    })().catch(() => setState("unsupported"));
+  }, []);
+
+  const turnOn = async () => {
+    if (!member) return setMessage("Choose who you are above first.");
+    setBusy(true);
+    setMessage("");
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setState(permission === "denied" ? "denied" : "off");
+        return;
+      }
+      const keyRes = await authFetch("/api/admin/push/key");
+      const { publicKey } = await keyRes.json();
+      const reg = await navigator.serviceWorker.register("/team-sw.js", { scope: "/admin/app" });
+      await navigator.serviceWorker.ready;
+      const sub =
+        (await reg.pushManager.getSubscription()) ??
+        (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToBytes(publicKey) as BufferSource }));
+      const res = await authFetch("/api/admin/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ by: member, subscription: sub.toJSON() }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Couldn’t save");
+      setState("on");
+      setMessage("Notifications are on. Press “Send me a test” to check.");
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Couldn’t turn on notifications.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const turnOff = async () => {
+    setBusy(true);
+    setMessage("");
+    try {
+      const reg = await navigator.serviceWorker.getRegistration("/admin/app");
+      const sub = await reg?.pushManager.getSubscription();
+      if (sub) {
+        await authFetch("/api/admin/push/unsubscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ endpoint: sub.endpoint }),
+        });
+        await sub.unsubscribe();
+      }
+      setState("off");
+    } catch {
+      setMessage("Couldn’t turn off notifications.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const sendTest = async () => {
+    if (!member) return setMessage("Choose who you are above first.");
+    setBusy(true);
+    setMessage("");
+    const res = await authFetch("/api/admin/push/test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ by: member }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setBusy(false);
+    setMessage(res.ok ? "Sent. It should arrive in a few seconds." : data.error || "Couldn’t send the test.");
+  };
+
+  return (
+    <section className="ta-card">
+      <h2 className="ta-card-title">Notifications</h2>
+      {state === "loading" && <p className="ta-note">Checking…</p>}
+      {state === "needs-install" && (
+        <p className="ta-note">On iPhone, notifications only work from the app on your home screen. Add it first (steps above), open it from the Scramble icon, then come back here.</p>
+      )}
+      {state === "unsupported" && <p className="ta-note">This browser doesn’t support notifications. Try Safari or Chrome with the app added to your home screen.</p>}
+      {state === "not-configured" && <p className="ta-note">Notifications aren’t set up on the server yet. Ask Claude to finish the setup.</p>}
+      {state === "denied" && <p className="ta-note">Notifications are blocked for this app. Turn them on in your phone’s Settings, under Notifications, then come back.</p>}
+      {state === "off" && (
+        <>
+          <p className="ta-note">Get reminders on this phone: a Sunday nudge to plan your week, and a daily summary of what’s due.</p>
+          <button className="ta-btn primary" onClick={turnOn} disabled={busy}>{busy ? "Turning on…" : "Turn on notifications"}</button>
+        </>
+      )}
+      {state === "on" && (
+        <>
+          <p className="ta-note">✓ Notifications are on for this phone{member ? ` (${member})` : ""}.</p>
+          <div className="ta-card-actions">
+            <button className="ta-btn primary" onClick={sendTest} disabled={busy}>Send me a test</button>
+            <button className="ta-btn" onClick={turnOff} disabled={busy}>Turn off</button>
+          </div>
+        </>
+      )}
+      {message && <p className="ta-note" aria-live="polite">{message}</p>}
+    </section>
   );
 }
 
