@@ -367,6 +367,42 @@ export async function analyticsMetrics(propertyId: string): Promise<{ period: Pe
   };
 }
 
+/** Organic search enquiries: GA4 key events from the "Organic Search" channel, last 28 days vs the 28 before. Refreshed every 6 hours. */
+export async function analyticsEnquiries(propertyId: string): Promise<{ period: Period; current: number; previous: number }> {
+  if (!/^\d+$/.test(propertyId)) throw new AgencyGoogleError("api_error", "Invalid GA4 property ID");
+  const { current, previous } = periods(1);
+  return cachedAds(`ga-enquiries:${propertyId}`, 6 * 60 * 60 * 1000, async () => {
+    const data = await googleJson<{
+      rows?: { dimensionValues: { value: string }[]; metricValues: { value: string }[] }[];
+    }>(`https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`, {
+      method: "POST",
+      body: JSON.stringify({
+        dateRanges: [
+          { startDate: current.start, endDate: current.end, name: "current" },
+          { startDate: previous.start, endDate: previous.end, name: "previous" },
+        ],
+        metrics: [{ name: "keyEvents" }],
+        dimensionFilter: {
+          filter: { fieldName: "sessionDefaultChannelGroup", stringFilter: { matchType: "EXACT", value: "Organic Search" } },
+        },
+      }),
+    });
+    const byRange = (name: string) =>
+      Number(data.rows?.find((r) => r.dimensionValues?.[0]?.value === name)?.metricValues?.[0]?.value ?? 0);
+    return { period: current, current: byRange("current"), previous: byRange("previous") };
+  });
+}
+
+/** Number of search queries the site ranks for on page one (average position 10 or better), last 28 days vs the 28 before. Refreshed every 6 hours. */
+export async function searchConsolePageOneKeywords(siteUrl: string): Promise<{ period: Period; current: number; previous: number }> {
+  const { current, previous } = periods(3);
+  return cachedAds(`sc-pageone:${siteUrl}`, 6 * 60 * 60 * 1000, async () => {
+    const [cur, prev] = await Promise.all([searchConsoleQueryRows(siteUrl, current), searchConsoleQueryRows(siteUrl, previous)]);
+    const count = (rows: QueryRow[]) => rows.filter((r) => r.position <= 10).length;
+    return { period: current, current: count(cur), previous: count(prev) };
+  });
+}
+
 /** Ads metrics are refreshed once a day per account (see lib/ads-cache.ts) */
 export async function adsMetrics(customerId: string): Promise<{ period: Period; metrics: Metric[] }> {
   const id = customerId.replace(/-/g, "");

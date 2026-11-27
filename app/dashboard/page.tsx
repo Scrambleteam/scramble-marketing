@@ -9,6 +9,8 @@ import { SCRAMBLE_THEME } from "@/lib/scramble-theme";
 import { servicesForTier, TierKey, ServiceKey } from "@/lib/tiers";
 import ServiceMetricsCard, { ServiceData, SERVICE_CARD_STYLES } from "@/components/dashboard/ServiceMetricsCard";
 import MetaShareSteps, { META_SHARE_STYLES } from "@/components/dashboard/MetaShareSteps";
+import HeadlineMeasures, { HEADLINE_STYLES } from "@/components/dashboard/HeadlineMeasures";
+import type { Headline } from "@/lib/client-metrics";
 
 interface Profile {
   email: string;
@@ -17,7 +19,7 @@ interface Profile {
   services: ServiceKey[];
 }
 
-type Metrics = Partial<Record<"search_console" | "analytics" | "ads" | "meta_ads", ServiceData>>;
+type Metrics = Partial<Record<"search_console" | "analytics" | "ads" | "meta_ads", ServiceData>> & { headline?: Headline | null };
 
 export default function ClientDashboard() {
   const router = useRouter();
@@ -88,6 +90,7 @@ export default function ClientDashboard() {
       <style>{dashStyles}</style>
       <style>{SERVICE_CARD_STYLES}</style>
       <style>{META_SHARE_STYLES}</style>
+      <style>{HEADLINE_STYLES}</style>
 
       {/* Top bar */}
       <nav className="sc-nav">
@@ -132,6 +135,8 @@ export default function ClientDashboard() {
             <MetaShareSteps />
           </div>
         )}
+
+        <HeadlineMeasures headline={metrics?.headline} />
 
         {/* Service dashboards */}
         <div className="dash-services">

@@ -21,6 +21,8 @@ import ClientPropertyEditor, { PROPERTY_EDITOR_STYLES } from "@/components/admin
 import { AGENCY_PANEL_STYLES } from "@/components/admin/AgencyGooglePanel";
 import { useAgencyGoogle } from "@/components/admin/useAgencyGoogle";
 import ServiceMetricsCard, { ServiceData, SERVICE_CARD_STYLES } from "@/components/dashboard/ServiceMetricsCard";
+import HeadlineMeasures, { HEADLINE_STYLES } from "@/components/dashboard/HeadlineMeasures";
+import type { Headline } from "@/lib/client-metrics";
 import WorkspaceSectionForm, { SectionState, WORKSPACE_FORM_STYLES } from "@/components/admin/WorkspaceSectionForm";
 import ActivityTimeline, { ACTIVITY_STYLES } from "@/components/admin/ActivityTimeline";
 import ChangeLog, { CHANGE_LOG_STYLES } from "@/components/admin/ChangeLog";
@@ -29,7 +31,7 @@ import { TEAM_PICKER_STYLES, useTeamMember } from "@/components/admin/TeamMember
 import { SectionKey, sectionIsEmpty } from "@/lib/workspace";
 
 type Tab = "overview" | "connections" | "brief" | "strategy" | "seo" | "changes" | "activity";
-type Metrics = Partial<Record<"search_console" | "analytics" | "ads" | "meta_ads", ServiceData>>;
+type Metrics = Partial<Record<"search_console" | "analytics" | "ads" | "meta_ads", ServiceData>> & { headline?: Headline | null };
 
 export default function ClientWorkspacePage() {
   return (
@@ -106,6 +108,7 @@ function ClientWorkspace() {
   return (
     <>
       <style>{SERVICE_CARD_STYLES}</style>
+      <style>{HEADLINE_STYLES}</style>
       <style>{AGENCY_PANEL_STYLES}</style>
       <style>{PROPERTY_EDITOR_STYLES}</style>
       <style>{WORKSPACE_FORM_STYLES}</style>
@@ -207,6 +210,25 @@ function ClientWorkspace() {
       ) : tab === "overview" ? (
         <div className="ws-section">
           <p className="ws-help">This is what {client.company_name} sees on their dashboard right now.</p>
+          <HeadlineMeasures headline={metrics?.headline} />
+          {metrics?.headline?.trackingSince && (
+            <p className="ws-help">
+              The starting numbers were captured on{" "}
+              {new Date(metrics.headline.trackingSince).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}.{" "}
+              <button
+                className="sc-link"
+                style={{ background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit" }}
+                onClick={async () => {
+                  if (!confirm("Restart this client's baseline? Their starting numbers will be re-captured from the last 28 days.")) return;
+                  const res = await authFetch(`/api/admin/clients/${client.id}/baseline`, { method: "DELETE" });
+                  if (res.ok) setMetricsKey((k) => k + 1);
+                  else alert("Couldn't restart the baseline.");
+                }}
+              >
+                Restart baseline
+              </button>
+            </p>
+          )}
           <div className="ws-cards">
             {services.map((service) => (
               <ServiceMetricsCard
