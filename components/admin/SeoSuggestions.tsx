@@ -5,7 +5,7 @@ import { authFetch } from "@/lib/api-client";
 import { SEO_KINDS, SeoKind } from "@/lib/seo-analysis";
 import TeamMemberPicker, { TeamMember } from "./TeamMemberPicker";
 
-type SeoStatus = "new" | "accepted" | "done" | "dismissed";
+type SeoStatus = "new" | "accepted" | "in_progress" | "done" | "dismissed";
 
 interface Suggestion {
   id: string;
@@ -81,7 +81,7 @@ export default function SeoSuggestions({
   };
 
   const visible = (items || []).filter((i) =>
-    show === "open" ? i.status === "new" || i.status === "accepted" : i.status === show
+    show === "open" ? i.status === "new" || i.status === "accepted" || i.status === "in_progress" : i.status === show
   );
   const lastRun = (items || []).reduce<string | null>((m, i) => (!m || i.last_seen_at > m ? i.last_seen_at : m), null);
 
@@ -135,12 +135,12 @@ export default function SeoSuggestions({
                     <p className="seo-rec"><strong>Suggested:</strong> {i.recommendation}</p>
                     <div className="seo-meta">
                       {Object.entries(i.evidence).map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`).join(" · ")}
-                      {i.status !== "new" && <> · {i.status}{i.status_by ? ` by ${i.status_by}` : ""}</>}
+                      {i.status !== "new" && <> · {i.status.replace("_", " ")}{i.status_by ? ` by ${i.status_by}` : ""}</>}
                     </div>
                     <div className="seo-actions">
                       {i.status === "new" && <button className="agency-btn-primary" onClick={() => setStatus(i.id, "accepted")}>Accept</button>}
-                      {(i.status === "new" || i.status === "accepted") && <button className="agency-btn-primary" onClick={() => setStatus(i.id, "done")}>Mark done</button>}
-                      {(i.status === "new" || i.status === "accepted") && <button className="agency-btn-ghost" onClick={() => setStatus(i.id, "dismissed")}>Dismiss</button>}
+                      {(i.status === "new" || i.status === "accepted" || i.status === "in_progress") && <button className="agency-btn-primary" onClick={() => setStatus(i.id, "done")}>Mark done</button>}
+                      {(i.status === "new" || i.status === "accepted" || i.status === "in_progress") && <button className="agency-btn-ghost" onClick={() => setStatus(i.id, "dismissed")}>Dismiss</button>}
                       {(i.status === "done" || i.status === "dismissed") && <button className="agency-btn-ghost" onClick={() => setStatus(i.id, "new")}>Reopen</button>}
                     </div>
                   </li>

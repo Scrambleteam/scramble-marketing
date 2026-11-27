@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { isAdminEmail } from "@/lib/admin";
 import { SCRAMBLE_THEME } from "@/lib/scramble-theme";
+import { authFetch } from "@/lib/api-client";
 
 /**
  * Admin page frame: checks the signed-in user is an admin (redirecting to
@@ -16,6 +17,7 @@ import { SCRAMBLE_THEME } from "@/lib/scramble-theme";
 export default function AdminShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [authorized, setAuthorized] = useState(false);
+  const [toReview, setToReview] = useState(0);
 
   useEffect(() => {
     authClient.auth.getUser().then(({ data }) => {
@@ -23,6 +25,15 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       else router.replace("/admin-login");
     });
   }, [router]);
+
+  // How many worker suggestions are waiting, shown beside the Inbox link
+  useEffect(() => {
+    if (!authorized) return;
+    authFetch("/api/admin/inbox?summary=1")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setToReview(d?.total ?? 0))
+      .catch(() => {});
+  }, [authorized]);
 
   const handleSignOut = async () => {
     await authClient.auth.signOut();
@@ -52,6 +63,10 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
               </Link>
               <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
                 <span className="admin-nav-badge">Admin</span>
+                <Link href="/admin" className="sc-link" style={{ fontSize: 15 }}>Clients</Link>
+                <Link href="/admin/inbox" className="sc-link" style={{ fontSize: 15 }}>
+                  Inbox{toReview > 0 && <span className="admin-nav-count">{toReview}</span>}
+                </Link>
                 <Link href="/landing" className="sc-link" style={{ fontSize: 15 }}>View site</Link>
                 <button onClick={handleSignOut} className="admin-signout">Sign out</button>
               </div>
@@ -68,6 +83,10 @@ const ADMIN_SHELL_STYLES = `
   .admin-nav-badge {
     font-size: 12px; font-weight: 700; color: #2d7fe0;
     background: rgba(74, 158, 255, 0.12); padding: 5px 12px; border-radius: 999px;
+  }
+  .admin-nav-count {
+    margin-left: 6px; font-size: 12px; font-weight: 700; color: white;
+    background: #e89b1f; padding: 2px 8px; border-radius: 999px;
   }
   .admin-signout {
     background: rgba(74, 158, 255, 0.1); color: #2d7fe0; border: none;

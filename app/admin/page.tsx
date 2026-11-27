@@ -34,6 +34,8 @@ function ClientHub() {
   const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  // Worker suggestions waiting for review, per client (internal; never shown to clients)
+  const [review, setReview] = useState<{ total: number; byClient: Record<string, number> }>({ total: 0, byClient: {} });
 
   useEffect(() => {
     authFetch("/api/scramble/clients")
@@ -43,6 +45,13 @@ function ClientHub() {
         setLoadError(true);
         setClients([]);
       });
+  }, []);
+
+  useEffect(() => {
+    authFetch("/api/admin/inbox?summary=1")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setReview(d))
+      .catch(() => {});
   }, []);
 
   const cards = useMemo(() => {
@@ -88,6 +97,15 @@ function ClientHub() {
       </div>
 
       <AgencyGooglePanel status={agency.status} onChange={agency.reload} />
+
+      {review.total > 0 && (
+        <Link href="/admin/inbox" className="hub-inbox-banner">
+          <span>
+            <strong>{review.total} worker suggestion{review.total === 1 ? "" : "s"}</strong> waiting for review
+          </span>
+          <span className="hub-open">Open inbox →</span>
+        </Link>
+      )}
 
       <div className="hub-stats">
         <Stat value={cards.length} label={SHOW_UNPAID_CLIENTS ? "Clients (testing: includes unpaid)" : "Paying clients"} />
@@ -144,6 +162,9 @@ function ClientHub() {
                 <div className="hub-badges">
                   <span className="badge plan">{planLabel(client.tier)}</span>
                   <span className={`badge ${billing.tone}`}>{billing.text}</span>
+                  {review.byClient[client.id] > 0 && (
+                    <span className="badge warn">{review.byClient[client.id]} to review</span>
+                  )}
                 </div>
                 <ServiceLights lights={lights} />
                 <div className={`hub-action ${action.attention ? "attention" : ""}`}>
@@ -192,6 +213,11 @@ function Stat({ value, label, tone }: { value: number; label: string; tone?: "go
 }
 
 const hubStyles = `
+  .hub-inbox-banner {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px; text-decoration: none;
+    margin-bottom: 20px; padding: 16px 20px; border-radius: 16px; font-size: 15px; color: #7a4d00;
+    background: rgba(244,185,66,0.15); border: 1px solid rgba(232,155,31,0.35);
+  }
   .hub-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
   .hub-stat {
     background: rgba(255,255,255,0.92); border: 1px solid rgba(122, 178, 255, 0.16);
