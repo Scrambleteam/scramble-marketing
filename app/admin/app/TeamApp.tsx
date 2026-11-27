@@ -126,7 +126,7 @@ function App() {
 
   const needMember = (): TeamMember | null => {
     if (member) return member;
-    setError("Choose who you are first (More tab).");
+    setError("Choose who you are first.");
     setTab("more");
     return null;
   };
@@ -198,6 +198,13 @@ function App() {
       </header>
 
       <main className="ta-main">
+        {!member && tab !== "more" && (
+          <section className="ta-card">
+            <h2 className="ta-card-title">Who are you?</h2>
+            <p className="ta-note">Choose your name so your tasks and notifications are yours. You can change it later in Settings.</p>
+            <TeamMemberPicker member={member} onChange={setMember} />
+          </section>
+        )}
         {error && (
           <div className="ta-error" onClick={() => setError("")}>{error}</div>
         )}
@@ -248,7 +255,7 @@ function App() {
             ["today", "Today", "☀︎"],
             ["week", "Week", "▦"],
             ["inbox", "Inbox", "✦"],
-            ["more", "More", "☰"],
+            ["more", "Settings", "⚙︎"],
           ] as [Tab, string, string][]
         ).map(([key, label, icon]) => (
           <button key={key} className={tab === key ? "on" : ""} onClick={() => setTab(key)} aria-current={tab === key}>
@@ -503,7 +510,10 @@ function MoreView({ member, setMember, onSignOut }: { member: TeamMember | null;
     <>
       <section className="ta-card">
         <h2 className="ta-card-title">Who are you?</h2>
-        <p className="ta-note">We share one login, so choose your name. It is remembered on this phone.</p>
+        <p className="ta-note">
+          {member ? `You’re set as ${member}.` : "Choose your name."} We share one login, so this decides whose tasks
+          and notifications you see. It’s remembered on this phone, and you can switch any time.
+        </p>
         <TeamMemberPicker member={member} onChange={setMember} />
       </section>
 
@@ -566,7 +576,7 @@ function NotificationsCard({ member }: { member: TeamMember | null }) {
   }, []);
 
   const turnOn = async () => {
-    if (!member) return setMessage("Choose who you are above first.");
+    if (!member) return setMessage("Choose who you are in the box above first.");
     setBusy(true);
     setMessage("");
     try {
@@ -620,7 +630,7 @@ function NotificationsCard({ member }: { member: TeamMember | null }) {
   };
 
   const sendPreview = async (slot: "daily" | "sunday-am") => {
-    if (!member) return setMessage("Choose who you are above first.");
+    if (!member) return setMessage("Choose who you are in the box above first.");
     setBusy(true);
     setMessage("");
     const res = await authFetch("/api/admin/push/reminder", {
@@ -634,7 +644,7 @@ function NotificationsCard({ member }: { member: TeamMember | null }) {
   };
 
   const sendTest = async () => {
-    if (!member) return setMessage("Choose who you are above first.");
+    if (!member) return setMessage("Choose who you are in the box above first.");
     setBusy(true);
     setMessage("");
     const res = await authFetch("/api/admin/push/test", {
