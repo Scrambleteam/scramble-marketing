@@ -27,10 +27,11 @@ import WorkspaceSectionForm, { SectionState, WORKSPACE_FORM_STYLES } from "@/com
 import ActivityTimeline, { ACTIVITY_STYLES } from "@/components/admin/ActivityTimeline";
 import ChangeLog, { CHANGE_LOG_STYLES } from "@/components/admin/ChangeLog";
 import SeoSuggestions, { SEO_STYLES } from "@/components/admin/SeoSuggestions";
+import ClientUpdates, { CLIENT_UPDATES_STYLES } from "@/components/admin/ClientUpdates";
 import { TEAM_PICKER_STYLES, useTeamMember } from "@/components/admin/TeamMemberPicker";
 import { SectionKey, sectionIsEmpty } from "@/lib/workspace";
 
-type Tab = "overview" | "connections" | "brief" | "strategy" | "seo" | "changes" | "activity";
+type Tab = "overview" | "connections" | "brief" | "strategy" | "seo" | "changes" | "clientview" | "activity";
 type Metrics = Partial<Record<"search_console" | "analytics" | "ads" | "meta_ads", ServiceData>> & { headline?: Headline | null };
 
 export default function ClientWorkspacePage() {
@@ -109,6 +110,7 @@ function ClientWorkspace() {
     <>
       <style>{SERVICE_CARD_STYLES}</style>
       <style>{HEADLINE_STYLES}</style>
+      <style>{CLIENT_UPDATES_STYLES}</style>
       <style>{AGENCY_PANEL_STYLES}</style>
       <style>{PROPERTY_EDITOR_STYLES}</style>
       <style>{WORKSPACE_FORM_STYLES}</style>
@@ -152,6 +154,7 @@ function ClientWorkspace() {
             ["strategy", "Strategy"],
             ["seo", "SEO"],
             ["changes", "Changes"],
+            ["clientview", "Client view"],
             ["activity", "Activity"],
           ] as [Tab, string][]
         ).map(([key, label]) => (
@@ -198,6 +201,10 @@ function ClientWorkspace() {
       ) : tab === "seo" ? (
         <div className="ws-section">
           <SeoSuggestions clientId={client.id} member={team.member} onMemberChange={team.setMember} />
+        </div>
+      ) : tab === "clientview" ? (
+        <div className="ws-section">
+          <ClientUpdates clientId={client.id} member={team.member} onMemberChange={team.setMember} />
         </div>
       ) : tab === "changes" ? (
         <div className="ws-section">

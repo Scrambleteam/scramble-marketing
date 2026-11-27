@@ -11,6 +11,8 @@ import ServiceMetricsCard, { ServiceData, SERVICE_CARD_STYLES } from "@/componen
 import MetaShareSteps, { META_SHARE_STYLES } from "@/components/dashboard/MetaShareSteps";
 import HeadlineMeasures, { HEADLINE_STYLES } from "@/components/dashboard/HeadlineMeasures";
 import type { Headline } from "@/lib/client-metrics";
+import type { PublicUpdate } from "@/lib/client-updates";
+import { CLIENT_TABS_STYLES, ClientTab, OverviewTab, ReportsTab, TabBar, WorkTab } from "@/components/dashboard/ClientTabs";
 
 interface Profile {
   email: string;
@@ -26,6 +28,10 @@ export default function ClientDashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [tab, setTab] = useState<ClientTab>("overview");
+  const [reportSub, setReportSub] = useState<"weekly" | "monthly">("weekly");
+  // Published updates only: what the Scramble team has chosen to share
+  const [updates, setUpdates] = useState<PublicUpdate[] | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -48,6 +54,11 @@ export default function ClientDashboard() {
           .then((r) => (r.ok ? r.json() : {}))
           .then(setMetrics)
           .catch(() => setMetrics({}));
+
+        authFetch("/api/dashboard/updates")
+          .then((r) => (r.ok ? r.json() : { updates: [] }))
+          .then((d) => setUpdates(d.updates))
+          .catch(() => setUpdates([]));
 
       }
       setLoading(false);
@@ -91,6 +102,7 @@ export default function ClientDashboard() {
       <style>{SERVICE_CARD_STYLES}</style>
       <style>{META_SHARE_STYLES}</style>
       <style>{HEADLINE_STYLES}</style>
+      <style>{CLIENT_TABS_STYLES}</style>
 
       {/* Top bar */}
       <nav className="sc-nav">
@@ -138,16 +150,22 @@ export default function ClientDashboard() {
 
         <HeadlineMeasures headline={metrics?.headline} />
 
-        {/* Service dashboards */}
-        <div className="dash-services">
-          {services.map((service) => (
-            <ServiceMetricsCard
-              key={service}
-              service={service}
-              data={metrics?.[service] ?? (metrics ? null : undefined)}
-            />
-          ))}
-        </div>
+        <TabBar tab={tab} onChange={setTab} />
+
+        {tab === "overview" && <OverviewTab updates={updates} />}
+        {tab === "reports" && <ReportsTab sub={reportSub} onSub={setReportSub} />}
+        {tab === "work" && <WorkTab />}
+        {tab === "live" && (
+          <div className="dash-services">
+            {services.map((service) => (
+              <ServiceMetricsCard
+                key={service}
+                service={service}
+                data={metrics?.[service] ?? (metrics ? null : undefined)}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Settings link */}
         <div className="dash-footer-links">
