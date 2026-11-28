@@ -115,12 +115,9 @@ export default function AgencyGooglePanel({
           Google Ads is being read through Maton, a third-party service. Search Console and Analytics are read directly from Google.
         </p>
       )}
-      {status && status.ads.provider !== "maton" && (!status.ads.developerToken || !status.ads.managerAccount) && (
+      {status && status.ads.provider !== "maton" && !status.ads.managerAccount && (
         <p className="agency-panel-note">
-          Google Ads:{" "}
-          {!status.ads.developerToken
-            ? "set GOOGLE_ADS_DEVELOPER_TOKEN in Vercel before Ads accounts can be listed or reported on."
-            : "no manager account set (GOOGLE_ADS_LOGIN_CUSTOMER_ID), so only Ads accounts the agency email was added to directly will appear."}
+          Google Ads: no manager account set (GOOGLE_ADS_LOGIN_CUSTOMER_ID), so only Ads accounts the agency email was added to directly will appear.
         </p>
       )}
 
