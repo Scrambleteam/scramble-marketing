@@ -194,11 +194,10 @@ export async function listAnalyticsProperties(): Promise<PropertyOption[]> {
 }
 
 function adsHeaders(): Record<string, string> {
+  // Google's Cloud console now grants Ads API access per project, so a developer
+  // token is optional. It is sent only when one is set.
   const developerToken = process.env.GOOGLE_ADS_DEVELOPER_TOKEN;
-  if (!developerToken) {
-    throw new AgencyGoogleError("not_configured", "GOOGLE_ADS_DEVELOPER_TOKEN is not set");
-  }
-  const headers: Record<string, string> = { "developer-token": developerToken };
+  const headers: Record<string, string> = developerToken ? { "developer-token": developerToken } : {};
   const loginCustomerId = process.env.GOOGLE_ADS_LOGIN_CUSTOMER_ID?.replace(/-/g, "");
   if (loginCustomerId) headers["login-customer-id"] = loginCustomerId;
   return headers;
